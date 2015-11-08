@@ -15,6 +15,8 @@ window.CelestialObject = (function() {
     this.e       = new Decimal(e)
     this.heading = new Decimal('' + heading)
     this.t       = new Decimal(t)
+    this.last_breadcrumb  = this.t
+    this.breadcrumb_delta = 201600
     this.breadcrumbs = []
   }
 
@@ -42,10 +44,22 @@ window.CelestialObject = (function() {
     return new Decimal('' + Math.sin(this.heading))
   }
 
+  klass.prototype.getParentCoordinates = function() {
+    return this.parent.getCoordinates()
+  }
+
+  klass.prototype.getLocalCoordinates = function() {
+    return klass.posToCoordinates(this.pos)
+  }
+
   klass.prototype.getCoordinates = function() {
+    return klass.posToCoordinates(this.pos)
+  }
+
+  klass.posToCoordinates = function(pos) {
     return {
-      x: this.pos.r.times(this.getGravityWellX()),
-      y: this.pos.r.times(this.getGravityWellY())
+      x: pos.r.times('' + Math.cos(pos.phi)),
+      y: pos.r.times('' + Math.sin(pos.phi))
     }
   }
 
@@ -67,14 +81,19 @@ window.CelestialObject = (function() {
     ctx.fill()
   }
 
-  klass.prototype.dropBreadcrumb = function() {
-    this.breadcrumbs.push(this.getCoordinates())
+  klass.prototype.dropBreadcrumb = function(t) {
+    if (t - this.last_breadcrumb < this.breadcrumb_delta) return
+
+    this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
+    this.last_breadcrumb = t
+    if (this.breadcrumbs.length > 50) this.breadcrumbs.shift()
   }
 
   klass.prototype.renderBreadcrumbs = function(renderer) {
     var ctx = renderer.context
     for (var i = this.breadcrumbs.length; i--; ) {
-      var coords = renderer.convertWorldToCanvas(this.breadcrumbs[i])
+      var el     = this.breadcrumbs[i],
+          coords = renderer.convertLocalToCanvas(el.parent, el.pos)
       ctx.beginPath()
       ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI)
       ctx.fillStyle = this.color
@@ -118,12 +137,19 @@ window.Sun = (function() {
 
   klass.prototype.step = function() {}
 
+  klass.prototype.getParentCoordinates = function() {
+    return { x: new Decimal(0), y: new Decimal(0) }
+  }
+  klass.prototype.dropBreadcrumb = function() {}
+  klass.prototype.renderBreadcrumb = function() {}
+
   return klass
 })()
 
 window.Ship = (function() {
   var klass = function   Ship(parent, radius,            v, a, pos,    heading, t) {
     this.initializeParameters(parent, radius, '#000', 0, v, a, pos, 0, heading, t)
+    this.breadcrumb_delta = 3600
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
@@ -139,7 +165,7 @@ window.Ship = (function() {
         accel_y    = a_y.plus(g_y).times(dt),
         vel_x      = this.v.times(this.getHeadingX()),
         vel_y      = this.v.times(this.getHeadingY()),
-        old_coords = this.getCoordinates(),
+        old_coords = this.getLocalCoordinates(),
         new_x      = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
         new_y      = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
         new_coords = { x: new_x, y: new_y }
@@ -149,11 +175,8 @@ window.Ship = (function() {
   }
 
   klass.prototype.setPosition = function(coords) {
-    var parent   = this.parent.getCoordinates(),
-        offset_x = coords.x.minus(parent.x),
-        offset_y = coords.y.minus(parent.y),
-        distance = offset_x.toPower(2).plus(offset_y.toPower(2)).sqrt(),
-        phi      = new Decimal('' + Math.atan2(offset_y, offset_x))
+    var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
+        phi      = new Decimal('' + Math.atan2(coords.y, coords.x))
 
     this.pos = { r: distance, phi: phi }
   }
@@ -164,6 +187,12 @@ window.Ship = (function() {
 
   klass.prototype.alterHeading = function(vel_x, vel_y) {
     this.heading = new Decimal('' + Math.atan2(vel_y, vel_x))
+  }
+
+  klass.prototype.getCoordinates = function() {
+    var parent = this.parent.getCoordinates(),
+        pos    = CelestialObject.posToCoordinates(this.pos)
+    return { x: pos.x.plus(parent.x), y: pos.y.plus(parent.y) }
   }
 
   klass.prototype.getRadius = function() {
@@ -192,6 +221,10 @@ window.Renderer = (function() {
     this.zoom = this.zoom.times(5)
   }
 
+  klass.prototype.zoomTo = function(zoom) {
+    this.zoom = this.zoom.times(zoom)
+  }
+
   klass.prototype.initCanvas = function(canvas) {
     canvas.width        = this.canvas_size.width
     canvas.height       = this.canvas_size.height
@@ -206,10 +239,16 @@ window.Renderer = (function() {
     this.context.fill()
   }
 
+  klass.prototype.convertLocalToCanvas = function(parent, local_pos) {
+    var parent_coords = parent.getCoordinates(),
+        local_coords  = CelestialObject.posToCoordinates(local_pos)
+    return this.convertWorldToCanvas({ x: parent_coords.x.plus(local_coords.x), y: parent_coords.y.plus(local_coords.y) })
+  }
+
   klass.prototype.convertWorldToCanvas = function(coords) {
     return {
-      x: this.scaleWorldToCanvasX(coords.x.plus(this.offset.x).times(this.zoom)).plus(this.origin.x),
-      y: this.scaleWorldToCanvasY(coords.y.plus(this.offset.y).times(this.zoom)).plus(this.origin.y)
+      x: this.scaleWorldToCanvasX(coords.x.minus(this.offset.x).times(this.zoom)).plus(this.origin.x),
+      y: this.scaleWorldToCanvasY(coords.y.minus(this.offset.y).times(this.zoom)).plus(this.origin.y)
     }
   }
 
@@ -233,32 +272,53 @@ window.Simulator = (function() {
     this.debug     = debug
   }
 
+  klass.prototype.track = function(celestial_object) {
+    this.tracking = celestial_object
+  }
+
+  klass.prototype.trackNext = function() {
+    this.moveTracker(1)
+  }
+
+  klass.prototype.trackPrev = function() {
+    this.moveTracker(-1)
+  }
+
+  klass.prototype.moveTracker = function(i) {
+    this.tracking = this.elements[(this.elements.indexOf(this.tracking) + this.elements.length + i) % this.elements.length]
+  }
+
   klass.prototype.run = function(renderer) {
     this.running = true
     var last_run = new Date(), now
-    var last_crumb = this.t, drop_crumb
     (function render() {
       now = new Date()
       renderer.clear()
-      drop_crumb = (this.t === 0 || this.t - last_crumb > 201600)
       for (var i = this.elements.length; i--; ) {
         var element = this.elements[i]
         element.step(this.tick_size)
-        if (this.debug) {
-          debugData(this.t / 21600, 'days')
-          if (this.debug === element.color) {
-            debugData(element.pos.r,   'r')
-            debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
-            debugData(element.v,       'vel')
-            debugData(element.heading.times(180).dividedBy('' + Math.PI), 'heading')
-            debugData(element.pos.phi.minus(element.heading).times(180).dividedBy('' + Math.PI), 'rel_heading')
-          }
-        }
-        if (drop_crumb) {
-          element.dropBreadcrumb()
-          last_crumb = this.t
-        }
       }
+      if (this.tracking) {
+        var coords = this.tracking.getCoordinates()
+        renderer.offset = { x: coords.x, y: coords.y }
+      }
+
+      for (var i = this.elements.length; i--; ) {
+        var element = this.elements[i]
+        if (this.debug === element.color) {
+          debugData(element.pos.r,   'r')
+          debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
+          debugData(element.v,       'vel')
+          debugData(element.heading.times(180).dividedBy('' + Math.PI), 'heading')
+          debugData(element.pos.phi.minus(element.heading).times(180).dividedBy('' + Math.PI), 'rel_heading')
+          var kcoords = this.elements[3].getCoordinates(),
+              scoords = element.getCoordinates(),
+              d       = kcoords.x.minus(scoords.x).toPower(2).plus(kcoords.y.minus(scoords.y).toPower(2)).sqrt()
+          debugData(d, 'kdist')
+        }
+        element.dropBreadcrumb(this.t)
+      }
+      this.showSimDetails(renderer)
 
       if (now - last_run > 0.2) {
         for (var i = this.elements.length; i--; ) {
@@ -275,14 +335,8 @@ window.Simulator = (function() {
         launches.shift()
         var kerbin = this.elements[2],
             sun    = this.elements[0],
-            khead  = kerbin.getHeading(),
-            kvel   = kerbin.getVelocity(),
-            head   = khead.plus('' + Math.PI / 4),
-            vel_x  = new Decimal(1).minus('' + Math.cos(Math.abs((head - khead) % Math.PI))).times(kvel),
-            vel_y  = new Decimal(1).minus('' + Math.sin(Math.abs((head - khead) % Math.PI))).times(kvel),
-            vel    = vel_x.toPower(2).plus(vel_y.toPower(2)).sqrt(),
-            ship   = new Ship(sun, 50, vel, 0.002, kerbin.pos, head, this.t)
-        this.elements.push(ship)
+            ship   = new Ship(kerbin, 50, 2280, 0.2, { r: 7e5, phi: 0 }, -Math.PI / 2, this.t)
+        this.elements.unshift(ship)
       }
       if (this.running) window.requestAnimationFrame(render.bind(this))
     }.bind(this))()
@@ -308,8 +362,15 @@ window.Simulator = (function() {
     }
   }
 
+  klass.prototype.showSimDetails = function(renderer) {
+    debugData(renderer.zoom, 'zoom')
+    debugData(this.t / 21600, 'day')
+    debugData(this.tick_size , 'warp')
+  }
+
   function debugData(data, id) {
-    document.getElementById(id).innerHTML = data
+    var el = document.getElementById(id)
+    if (el) el.innerHTML = data
   }
 
   return klass
@@ -324,12 +385,40 @@ window.Simulator = (function() {
       sun      = new Sun(1.1723328e18, 2.616e8, t),
       kerbin   = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, t),
       duna     = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, t),
-      s        = new Simulator(t, [sun, duna, kerbin], 600, '#000')
+      s        = new Simulator(t, [sun, duna, kerbin], 1, '#000')
+  s.track(kerbin)
+  renderer.zoomTo(15000)
   s.run(renderer)
   document.getElementById('pause').addEventListener('click', function() { s.togglePaused(renderer) })
   document.getElementById('zoom_in').addEventListener('click', renderer.zoomIn.bind(renderer))
   document.getElementById('zoom_out').addEventListener('click', renderer.zoomOut.bind(renderer))
   document.getElementById('faster').addEventListener('click', s.faster.bind(s))
   document.getElementById('slower').addEventListener('click', s.slower.bind(s))
+  window.onkeyup = function(e) {
+    var key = e.keyCode ? e.keyCode : e.which
+
+    if (key === 27 || key === 32) {
+      // esc
+      s.togglePaused(renderer)
+    } else if (key === 187) {
+      // +
+      renderer.zoomIn()
+    } else if (key === 189) {
+      // -
+      renderer.zoomOut()
+    } else if (key === 190) {
+      // >
+      s.faster()
+    } else if (key === 188) {
+      // <
+      s.slower()
+    } else if (key === 221) {
+      // [
+      s.trackNext()
+    } else if (key === 219) {
+      // ]
+      s.trackPrev()
+    }
+  }
 })()
 

@@ -5,22 +5,34 @@
     <title>Flight plan</title>
   </head>
   <body>
-    <canvas id='flightplan'></canvas>
+    <canvas id='flightplan' style='float: left; margin-right: 10px;'></canvas>
     <br />
-    <button id='pause'>=</button>
-    <button id='zoom_out'>-</button>
-    <button id='zoom_in'>+</button>
-    <button id='slower'>&laquo;</button>
-    <button id='faster'>&raquo;</button>
+    <div id='controls'>
+      <button id='pause'>=</button>
+      <button id='zoom_out'>-</button>
+      <button id='zoom_in'>+</button>
+      <button id='slower'>&laquo;</button>
+      <button id='faster'>&raquo;</button>
+    </div>
+    <div id='info'>
+      <dl>
+        <dt>Day</dt>
+        <dd id='day'></dd>
+        <dt>Zoom</dt>
+        <dd id='zoom'></dd>
+        <dt>Warp</dt>
+        <dd id='warp'></dd>
+      </dl>
+    </div>
     <dl id='debug'>
-      <dt>Days</dt>
-      <dd id='days'></dd>
       <dt>R</dt>
       <dd id='r'></dd>
       <dt>Phi</dt>
       <dd id='phi'></dd>
       <dt>Velocity</dt>
       <dd id='vel'></dd>
+      <dt>Distance to Kerbin</dt>
+      <dd id='kdist'></dd>
       <dt>Heading</dt>
       <dd id='heading'></dd>
       <dt>Relative heading</dt>
