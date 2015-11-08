@@ -1,4 +1,4 @@
-var launches = [1.9872e7]
+var launches = [1.8872e7]
 
 window.CelestialObject = (function() {
   var klass = function CelestialObject() {}
@@ -24,9 +24,13 @@ window.CelestialObject = (function() {
         two = new Decimal(2),
         n   = this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt(),
         M   = n.times(this.t).plus(this.m),
-        v   = M.plus(two.times(this.e).times('' + Math.sin(M))).plus(new Decimal(1.25).times(this.e.toPower(2)).times(two.times(M))),
-        r   = this.a.times(one.minus(this.e.toPower(2)).dividedBy(one.plus(this.e.times('' + Math.cos(v))))),
-        phi = new Decimal('' + Math.atan2(this.e.times('' + Math.sin(v)), one.plus(this.e.times('' + Math.cos(v)))))
+        e   = this.e,
+        S   = new Decimal('' + Math.sin(-M)),
+        C   = new Decimal('' + Math.cos(-M)),
+        phi = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
+        v   = M.plus(two.times(e).times('' + Math.sin(M))).plus(new Decimal(1.25).times(e.toPower(2)).times(two.times(M))),
+        r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(v)))))
+        // phi = new Decimal('' + Math.atan2(e.times('' + Math.sin(v)), one.plus(e.times('' + Math.cos(v)))))
     this.pos = { r: r, phi: phi }
   }
 
@@ -82,6 +86,10 @@ window.CelestialObject = (function() {
     return Math.max(renderer.scaleWorldToCanvasX(this.radius).times(renderer.zoom), 4)
   }
 
+  klass.prototype.getVelocity = function() {
+    return this.v
+  }
+
   return klass
 })()
 
@@ -92,6 +100,10 @@ window.Planet = (function() {
 
   klass.prototype = Object.create(CelestialObject.prototype)
   klass.prototype.constructor = klass
+
+  klass.prototype.getHeading = function() {
+    return this.pos.phi.minus('' + Math.PI / 2)
+  }
 
   return klass
 })()
@@ -232,13 +244,15 @@ window.Simulator = (function() {
       for (var i = this.elements.length; i--; ) {
         var element = this.elements[i]
         element.step(this.tick_size)
-        if (element === this.debug) {
+        if (this.debug) {
           debugData(this.t / 21600, 'days')
-          debugData(element.pos.r,   'r')
-          debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
-          debugData(element.v,       'vel')
-          debugData(element.heading.times(180).dividedBy('' + Math.PI), 'heading')
-          debugData(element.pos.phi.minus(element.heading).times(180).dividedBy('' + Math.PI), 'rel_heading')
+          if (this.debug === element.color) {
+            debugData(element.pos.r,   'r')
+            debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
+            debugData(element.v,       'vel')
+            debugData(element.heading.times(180).dividedBy('' + Math.PI), 'heading')
+            debugData(element.pos.phi.minus(element.heading).times(180).dividedBy('' + Math.PI), 'rel_heading')
+          }
         }
         if (drop_crumb) {
           element.dropBreadcrumb()
@@ -261,7 +275,13 @@ window.Simulator = (function() {
         launches.shift()
         var kerbin = this.elements[2],
             sun    = this.elements[0],
-            ship = new Ship(sun, 50, 9284.5, 0.2, source.pos, source.heading, this.t)
+            khead  = kerbin.getHeading(),
+            kvel   = kerbin.getVelocity(),
+            head   = khead.plus('' + Math.PI / 4),
+            vel_x  = new Decimal(1).minus('' + Math.cos(Math.abs((head - khead) % Math.PI))).times(kvel),
+            vel_y  = new Decimal(1).minus('' + Math.sin(Math.abs((head - khead) % Math.PI))).times(kvel),
+            vel    = vel_x.toPower(2).plus(vel_y.toPower(2)).sqrt(),
+            ship   = new Ship(sun, 50, vel, 0.002, kerbin.pos, head, this.t)
         this.elements.push(ship)
       }
       if (this.running) window.requestAnimationFrame(render.bind(this))
@@ -300,11 +320,11 @@ window.Simulator = (function() {
       world    = { width: size, height: size },
       canvas   = { width: 500, height: 500 },
       renderer = new Renderer(document.getElementById('flightplan'), world, canvas),
-      t        = 1.7e7,
+      t        = 1.88719e7,
       sun      = new Sun(1.1723328e18, 2.616e8, t),
       kerbin   = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, t),
       duna     = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, t),
-      s        = new Simulator(t, [sun, duna, kerbin], 600, duna)
+      s        = new Simulator(t, [sun, duna, kerbin], 600, '#000')
   s.run(renderer)
   document.getElementById('pause').addEventListener('click', function() { s.togglePaused(renderer) })
   document.getElementById('zoom_in').addEventListener('click', renderer.zoomIn.bind(renderer))
