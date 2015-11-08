@@ -3,18 +3,18 @@ var launches = [1.8872e7]
 window.CelestialObject = (function() {
   var klass = function CelestialObject() {}
 
-  klass.prototype.initializeParameters = function(parent, radius, color, mu, v, a, pos, e, heading, t) {
-    this.parent  = parent
-    this.radius  = radius
-    this.color   = color
-    this.mu      = new Decimal(mu)
-    this.v       = new Decimal(v)
-    this.a       = new Decimal(a)
-    this.pos     = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
-    this.m       = this.pos.phi
-    this.e       = new Decimal(e)
-    this.heading = new Decimal('' + heading)
-    this.t       = new Decimal(t)
+  klass.prototype.initializeParameters = function(parent, radius, color, mu, v, a, pos, e, prograde, t) {
+    this.parent   = parent
+    this.radius   = radius
+    this.color    = color
+    this.mu       = new Decimal(mu)
+    this.v        = new Decimal(v)
+    this.a        = new Decimal(a)
+    this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
+    this.m        = this.pos.phi
+    this.e        = new Decimal(e)
+    this.prograde = new Decimal('' + prograde)
+    this.t        = new Decimal(t)
     this.last_breadcrumb  = this.t
     this.breadcrumb_delta = 201600
     this.breadcrumbs = []
@@ -37,11 +37,27 @@ window.CelestialObject = (function() {
   }
 
   klass.prototype.getHeadingX = function() {
-    return new Decimal('' + Math.cos(this.heading))
+    return new Decimal('' + Math.cos(this.getHeading()))
   }
 
   klass.prototype.getHeadingY = function() {
-    return new Decimal('' + Math.sin(this.heading))
+    return new Decimal('' + Math.sin(this.getHeading()))
+  }
+
+  klass.prototype.getHeading = function() {
+    return this.getPrograde()
+  }
+
+  klass.prototype.getProgradeX = function() {
+    return new Decimal('' + Math.cos(this.getPrograde()))
+  }
+
+  klass.prototype.getProgradeY = function() {
+    return new Decimal('' + Math.sin(this.getPrograde()))
+  }
+
+  klass.prototype.getPrograde = function() {
+    return this.prograde
   }
 
   klass.prototype.getParentCoordinates = function() {
@@ -113,14 +129,14 @@ window.CelestialObject = (function() {
 })()
 
 window.Planet = (function() {
-  var klass = function Planet(parent, radius, color, mu, v, a, pos, e, heading, t) {
-    this.initializeParameters(parent, radius, color, mu, v, a, pos, e, heading, t)
+  var klass = function Planet(parent, radius, color, mu, v, a, pos, e, prograde, t) {
+    this.initializeParameters(parent, radius, color, mu, v, a, pos, e, prograde, t)
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
   klass.prototype.constructor = klass
 
-  klass.prototype.getHeading = function() {
+  klass.prototype.getPrograde = function() {
     return this.pos.phi.minus('' + Math.PI / 2)
   }
 
@@ -147,8 +163,9 @@ window.Sun = (function() {
 })()
 
 window.Ship = (function() {
-  var klass = function   Ship(parent, radius,            v, a, pos,    heading, t) {
-    this.initializeParameters(parent, radius, '#000', 0, v, a, pos, 0, heading, t)
+  var klass = function   Ship(parent, radius,            v, a, pos,    prograde, t, heading) {
+    this.initializeParameters(parent, radius, '#FFF', 0, v, a, pos, 0, prograde, t)
+    this.heading = this.getPrograde().plus('' + heading)
     this.breadcrumb_delta = 3600
   }
 
@@ -163,14 +180,14 @@ window.Ship = (function() {
         a_y        = this.a.times(this.getHeadingY()),
         accel_x    = a_x.plus(g_x).times(dt),
         accel_y    = a_y.plus(g_y).times(dt),
-        vel_x      = this.v.times(this.getHeadingX()),
-        vel_y      = this.v.times(this.getHeadingY()),
+        vel_x      = this.v.times(this.getProgradeX()),
+        vel_y      = this.v.times(this.getProgradeY()),
         old_coords = this.getLocalCoordinates(),
         new_x      = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
         new_y      = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
         new_coords = { x: new_x, y: new_y }
     this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y), dt)
-    this.alterHeading(vel_x.plus(accel_x), vel_y.plus(accel_y))
+    this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.setPosition(new_coords)
   }
 
@@ -185,14 +202,18 @@ window.Ship = (function() {
     this.v = vel_x.toPower(2).plus(vel_y.toPower(2)).sqrt()
   }
 
-  klass.prototype.alterHeading = function(vel_x, vel_y) {
-    this.heading = new Decimal('' + Math.atan2(vel_y, vel_x))
+  klass.prototype.alterPrograde = function(vel_x, vel_y) {
+    this.prograde = new Decimal('' + Math.atan2(vel_y, vel_x))
   }
 
   klass.prototype.getCoordinates = function() {
     var parent = this.parent.getCoordinates(),
         pos    = CelestialObject.posToCoordinates(this.pos)
     return { x: pos.x.plus(parent.x), y: pos.y.plus(parent.y) }
+  }
+
+  klass.prototype.getHeading = function() {
+    return this.heading
   }
 
   klass.prototype.getRadius = function() {
@@ -235,7 +256,7 @@ window.Renderer = (function() {
   klass.prototype.clear = function() {
     this.context.beginPath()
     this.context.rect(0, 0, this.canvas_size.width, this.canvas_size.height)
-    this.context.fillStyle = '#EEE'
+    this.context.fillStyle = '#000'
     this.context.fill()
   }
 
@@ -309,8 +330,8 @@ window.Simulator = (function() {
           debugData(element.pos.r,   'r')
           debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
           debugData(element.v,       'vel')
-          debugData(element.heading.times(180).dividedBy('' + Math.PI), 'heading')
-          debugData(element.pos.phi.minus(element.heading).times(180).dividedBy('' + Math.PI), 'rel_heading')
+          debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
+          debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
           var kcoords = this.elements[3].getCoordinates(),
               scoords = element.getCoordinates(),
               d       = kcoords.x.minus(scoords.x).toPower(2).plus(kcoords.y.minus(scoords.y).toPower(2)).sqrt()
@@ -335,7 +356,7 @@ window.Simulator = (function() {
         launches.shift()
         var kerbin = this.elements[2],
             sun    = this.elements[0],
-            ship   = new Ship(kerbin, 50, 2280, 0.2, { r: 7e5, phi: 0 }, -Math.PI / 2, this.t)
+            ship   = new Ship(sun, 50, kerbin.getVelocity(), 0.2, kerbin.pos, kerbin.getPrograde(), this.t, Math.PI / 2)
         this.elements.unshift(ship)
       }
       if (this.running) window.requestAnimationFrame(render.bind(this))
@@ -385,7 +406,7 @@ window.Simulator = (function() {
       sun      = new Sun(1.1723328e18, 2.616e8, t),
       kerbin   = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, t),
       duna     = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, t),
-      s        = new Simulator(t, [sun, duna, kerbin], 1, '#000')
+      s        = new Simulator(t, [sun, duna, kerbin], 1, '#FFF')
   s.track(kerbin)
   renderer.zoomTo(15000)
   s.run(renderer)
