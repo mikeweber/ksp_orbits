@@ -1,23 +1,30 @@
-var launches = [1.8872e7]
-
 window.CelestialObject = (function() {
   var klass = function CelestialObject() {}
 
-  klass.prototype.initializeParameters = function(parent, radius, color, mu, v, a, pos, e, prograde, t) {
+  klass.prototype.initializeParameters = function(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
     this.parent   = parent
     this.radius   = radius
     this.color    = color
     this.mu       = new Decimal(mu)
     this.v        = new Decimal(v)
-    this.a        = new Decimal(a)
+    this.a        = new Decimal(semimajor_axis)
     this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
     this.m        = this.pos.phi
     this.e        = new Decimal(e)
     this.prograde = new Decimal('' + prograde)
-    this.t        = new Decimal(t)
     this.last_breadcrumb  = this.t
     this.breadcrumb_delta = 201600
     this.breadcrumbs = []
+  }
+
+  klass.calcObjectDistance = function(obj1, obj2) {
+    var coord1 = obj1.getCoordinates(),
+        coord2 = obj2.getCoordinates()
+        return coord1.x.minus(coord2.x).toPower(2).plus(coord1.y.minus(coord2.y).toPower(2)).sqrt()
+  }
+
+  klass.prototype.setTime = function(t) {
+    this.t = new Decimal(t)
   }
 
   klass.prototype.step = function(dt) {
@@ -129,8 +136,8 @@ window.CelestialObject = (function() {
 })()
 
 window.Planet = (function() {
-  var klass = function Planet(parent, radius, color, mu, v, a, pos, e, prograde, t) {
-    this.initializeParameters(parent, radius, color, mu, v, a, pos, e, prograde, t)
+  var klass = function Planet(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
+    this.initializeParameters(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
@@ -144,8 +151,8 @@ window.Planet = (function() {
 })()
 
 window.Sun = (function() {
-  var klass = function Sun(mu, radius, t) {
-    this.initializeParameters(null, radius, '#FF0', mu, 0, 0, { r: 0, phi: 0 }, 0, 0, t)
+  var klass = function Sun(mu, radius) {
+    this.initializeParameters(null, radius, '#FF0', mu, 0, 0, { r: 0, phi: 0 }, 0, 0)
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
@@ -163,21 +170,40 @@ window.Sun = (function() {
 })()
 
 window.Ship = (function() {
-  var klass = function   Ship(parent, radius,            v, a, pos,    prograde, t, heading) {
-    this.initializeParameters(parent, radius, '#FFF', 0, v, a, pos, 0, prograde, t)
-    this.heading = this.getPrograde().plus('' + heading)
-    this.breadcrumb_delta = 3600
+  var klass = function   Ship(parent, radius,            v,    pos,    prograde, heading) {
+    this.initializeParameters(parent, radius, '#FFF', 0, v, 0, pos, 0, prograde)
+    this.setHeading(heading)
+    this.breadcrumb_delta = 21600
+    this.nearest_approach = null
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
   klass.prototype.constructor = klass
 
+  klass.prototype.setManeuvers = function(maneuvers) {
+    this.maneuvers = maneuvers
+  }
+
+  klass.prototype.setTarget = function(target) {
+    this.target = target
+  }
+
+  klass.prototype.trackNearestApproach = function(t) {
+    if (!this.target) return
+    var d = CelestialObject.calcObjectDistance(this, this.target)
+    if (this.nearest_approach === null || d < this.nearest_approach) {
+      this.nearest_approach = d
+    }
+  }
+
   klass.prototype.step = function(dt) {
+    this.t = this.t.plus(dt)
+    this.alterCourse(this.t)
     var gravity    = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
         g_x        = gravity.times(this.getGravityWellX()),
         g_y        = gravity.times(this.getGravityWellY()),
-        a_x        = this.a.times(this.getHeadingX()),
-        a_y        = this.a.times(this.getHeadingY()),
+        a_x        = this.accel.times(this.getHeadingX()),
+        a_y        = this.accel.times(this.getHeadingY()),
         accel_x    = a_x.plus(g_x).times(dt),
         accel_y    = a_y.plus(g_y).times(dt),
         vel_x      = this.v.times(this.getProgradeX()),
@@ -189,6 +215,35 @@ window.Ship = (function() {
     this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y), dt)
     this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.setPosition(new_coords)
+    this.trackNearestApproach(this.t)
+  }
+
+  klass.prototype.alterCourse = function(t) {
+    if (this.maneuvers.length === 0) return
+
+    if (t > this.maneuvers[0][0]) {
+      var man = this.maneuvers.shift()[1]
+      if (man === null) {
+        if (this.nearest_approach) {
+          alert('Nearest approach: ' + this.nearest_approach.times(0.001).floor() + 'km')
+        }
+      } else {
+        if (!(man.heading === null || typeof man.heading === 'undefined')){
+          this.setHeading(man.heading)
+        }
+        if (!(man.throttle === null || typeof man.throttle === 'undefined')){
+          this.setThrottle(man.throttle)
+        }
+      }
+    }
+  }
+
+  klass.prototype.setMaxAcceleration = function(accel) {
+    this.max_accel = new Decimal(accel)
+  }
+
+  klass.prototype.setThrottle = function(throttle) {
+    this.accel = this.max_accel.times(throttle)
   }
 
   klass.prototype.setPosition = function(coords) {
@@ -196,6 +251,10 @@ window.Ship = (function() {
         phi      = new Decimal('' + Math.atan2(coords.y, coords.x))
 
     this.pos = { r: distance, phi: phi }
+  }
+
+  klass.prototype.setHeading = function(heading) {
+    this.heading = this.getPrograde().plus('' + heading)
   }
 
   klass.prototype.alterVelocity = function(vel_x, vel_y, dt) {
@@ -312,6 +371,9 @@ window.Simulator = (function() {
   klass.prototype.run = function(renderer) {
     this.running = true
     var last_run = new Date(), now
+    for (var i = this.elements.length; i--; ) {
+      this.elements[i].setTime(this.t)
+    }
     (function render() {
       now = new Date()
       renderer.clear()
@@ -332,10 +394,10 @@ window.Simulator = (function() {
           debugData(element.v,       'vel')
           debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
           debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
-          var kcoords = this.elements[3].getCoordinates(),
-              scoords = element.getCoordinates(),
-              d       = kcoords.x.minus(scoords.x).toPower(2).plus(kcoords.y.minus(scoords.y).toPower(2)).sqrt()
-          debugData(d, 'kdist')
+          var kd = CelestialObject.calcObjectDistance(kerbin, element),
+              dd = CelestialObject.calcObjectDistance(duna, element)
+          debugData(kd, 'kdist')
+          debugData(dd, 'ddist')
         }
         element.dropBreadcrumb(this.t)
       }
@@ -352,11 +414,14 @@ window.Simulator = (function() {
       }
       last_run = now
       this.t += this.tick_size
-      if (this.t > launches[0]) {
-        launches.shift()
-        var kerbin = this.elements[2],
-            sun    = this.elements[0],
-            ship   = new Ship(sun, 50, kerbin.getVelocity(), 0.2, kerbin.pos, kerbin.getPrograde(), this.t, Math.PI / 2)
+      if (launches.length > 0 && this.t > launches[0][0]) {
+        launch_data = launches.shift()[1]
+        var ship = new Ship(sun, 50, kerbin.getVelocity(), kerbin.pos, kerbin.getPrograde(), launch_data.angle)
+        ship.setTime(this.t)
+        ship.setMaxAcceleration(0.2)
+        ship.setThrottle(launch_data.throttle)
+        ship.setManeuvers(maneuvers)
+        ship.setTarget(duna)
         this.elements.unshift(ship)
       }
       if (this.running) window.requestAnimationFrame(render.bind(this))
@@ -385,7 +450,7 @@ window.Simulator = (function() {
 
   klass.prototype.showSimDetails = function(renderer) {
     debugData(renderer.zoom, 'zoom')
-    debugData(this.t / 21600, 'day')
+    debugData(Math.floor(this.t / 21600) + ' -- ' + this.t, 'day')
     debugData(this.tick_size , 'warp')
   }
 
@@ -397,18 +462,21 @@ window.Simulator = (function() {
   return klass
 })();
 
-(function() {
+var sun       = new Sun(1.1723328e18, 2.616e8),
+    kerbin    = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2),
+    duna      = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2),
+    launches  = [[1.8872e7, { angle: 0.31 * Math.PI, throttle: 1 }]],
+    maneuvers = [[1.907e7, { heading: Math.PI }], [1.92999e7, { throttle: 0 }], [1.93e7, null]]
+
+;(function() {
   var size     = 2.3e10,
       world    = { width: size, height: size },
       canvas   = { width: 500, height: 500 },
       renderer = new Renderer(document.getElementById('flightplan'), world, canvas),
       t        = 1.88719e7,
-      sun      = new Sun(1.1723328e18, 2.616e8, t),
-      kerbin   = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, t),
-      duna     = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, t),
-      s        = new Simulator(t, [sun, duna, kerbin], 1, '#FFF')
+      s        = new Simulator(t, [sun, duna, kerbin], 1)
   s.track(kerbin)
-  renderer.zoomTo(15000)
+  renderer.zoomTo(1)
   s.run(renderer)
   document.getElementById('pause').addEventListener('click', function() { s.togglePaused(renderer) })
   document.getElementById('zoom_in').addEventListener('click', renderer.zoomIn.bind(renderer))
