@@ -1,0 +1,10 @@
+{
+   'rules': {
+     'semi':            [2, 'never'],
+     'quotes':          [2, 'single'],
+     'no-multi-spaces': [1],
+     'key-spacing':     [2, { align: 'value' }],
+     'camelcase':       [1]
+   }
+}
+

@@ -1,4 +1,7 @@
+/* global window Decimal Object console */
 window.CelestialObject = (function() {
+  'use strict'
+
   var klass = function CelestialObject() {}
 
   klass.prototype.initializeParameters = function(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
@@ -8,7 +11,7 @@ window.CelestialObject = (function() {
     this.mu       = new Decimal(mu)
     this.v        = new Decimal(v)
     this.a        = new Decimal(semimajor_axis)
-    this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
+    this.pos      = { 'r': new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
     this.m        = this.pos.phi
     this.e        = new Decimal(e)
     this.prograde = new Decimal('' + prograde)
@@ -40,7 +43,7 @@ window.CelestialObject = (function() {
         v   = M.plus(two.times(e).times('' + Math.sin(M))).plus(new Decimal(1.25).times(e.toPower(2)).times(two.times(M))),
         r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(v)))))
         // phi = new Decimal('' + Math.atan2(e.times('' + Math.sin(v)), one.plus(e.times('' + Math.cos(v)))))
-    this.pos = { r: r, phi: phi }
+    this.pos = { 'r': r, phi: phi }
   }
 
   klass.prototype.getHeadingX = function() {
@@ -105,11 +108,13 @@ window.CelestialObject = (function() {
   }
 
   klass.prototype.dropBreadcrumb = function(t) {
-    if (t - this.last_breadcrumb < this.breadcrumb_delta) return
+    if (t - this.last_breadcrumb < this.breadcrumb_delta) { return }
 
     this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
     this.last_breadcrumb = t
-    if (this.breadcrumbs.length > 50) this.breadcrumbs.shift()
+    if (this.breadcrumbs.length > 100) {
+      this.breadcrumbs.shift()
+    }
   }
 
   klass.prototype.renderBreadcrumbs = function(renderer) {
@@ -136,12 +141,14 @@ window.CelestialObject = (function() {
 })()
 
 window.Planet = (function() {
+  'use strict'
+
   var klass = function Planet(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde, soi) {
     this.initializeParameters(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
     this.soi = soi
   }
 
-  klass.prototype = Object.create(CelestialObject.prototype)
+  klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
 
   klass.prototype.getPrograde = function() {
@@ -149,18 +156,20 @@ window.Planet = (function() {
   }
 
   klass.prototype.inSoi = function(ship) {
-    return CelestialObject.calcObjectDistance(this, ship).lessThan(this.soi)
+    return window.CelestialObject.calcObjectDistance(this, ship).lessThan(this.soi)
   }
 
   return klass
 })()
 
 window.Sun = (function() {
+  'use strict'
+
   var klass = function Sun(mu, radius) {
-    this.initializeParameters(null, radius, '#FF0', mu, 0, 0, { r: 0, phi: 0 }, 0, 0)
+    this.initializeParameters(null, radius, '#FF0', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0)
   }
 
-  klass.prototype = Object.create(CelestialObject.prototype)
+  klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
 
   klass.prototype.step = function() {}
@@ -175,6 +184,8 @@ window.Sun = (function() {
 })()
 
 window.Ship = (function() {
+  'use strict'
+
   var klass = function   Ship(parent, radius,            v,    pos,    prograde, heading) {
     this.initializeParameters(parent, radius, '#FFF', 0, v, 0, pos, 0, prograde)
     this.setHeading(heading)
@@ -182,7 +193,7 @@ window.Ship = (function() {
     this.nearest_approach = null
   }
 
-  klass.prototype = Object.create(CelestialObject.prototype)
+  klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
 
   klass.prototype.setManeuvers = function(maneuvers) {
@@ -194,14 +205,11 @@ window.Ship = (function() {
   }
 
   klass.prototype.trackNearestApproach = function(t) {
-    if (!this.target) return
-    var d = CelestialObject.calcObjectDistance(this, this.target)
+    if (!this.target) { return }
+    var d = window.CelestialObject.calcObjectDistance(this, this.target)
     if (this.nearest_approach === null || d < this.nearest_approach) {
       this.nearest_approach = d
-    }
-    if (d < this.target.soi) {
-      console.log('Entered target\'s sphere of influence')
-      s.pause()
+      this.time_of_nearest_appraoch = t
     }
   }
 
@@ -221,22 +229,18 @@ window.Ship = (function() {
         new_x      = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
         new_y      = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
         new_coords = { x: new_x, y: new_y }
-    this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y), dt)
+    this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.setPosition(new_coords)
     this.trackNearestApproach(this.t)
   }
 
   klass.prototype.alterCourse = function(t) {
-    if (this.maneuvers.length === 0) return
+    if (this.maneuvers.length === 0) { return }
 
     if (t > this.maneuvers[0][0]) {
       var man = this.maneuvers.shift()[1]
-      if (man === null) {
-        if (this.nearest_approach) {
-          alert('Nearest approach: ' + this.nearest_approach.times(0.001).floor() + 'km')
-        }
-      } else {
+      if (man !== null) {
         if (!(man.heading === null || typeof man.heading === 'undefined')){
           this.setHeading(man.heading)
         }
@@ -259,14 +263,14 @@ window.Ship = (function() {
     var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
         phi      = new Decimal('' + Math.atan2(coords.y, coords.x))
 
-    this.pos = { r: distance, phi: phi }
+    this.pos = { 'r': distance, phi: phi }
   }
 
   klass.prototype.setHeading = function(heading) {
     this.heading = this.getPrograde().plus('' + heading)
   }
 
-  klass.prototype.alterVelocity = function(vel_x, vel_y, dt) {
+  klass.prototype.alterVelocity = function(vel_x, vel_y) {
     this.v = vel_x.toPower(2).plus(vel_y.toPower(2)).sqrt()
   }
 
@@ -276,7 +280,7 @@ window.Ship = (function() {
 
   klass.prototype.getCoordinates = function() {
     var parent = this.parent.getCoordinates(),
-        pos    = CelestialObject.posToCoordinates(this.pos)
+        pos    = window.CelestialObject.posToCoordinates(this.pos)
     return { x: pos.x.plus(parent.x), y: pos.y.plus(parent.y) }
   }
 
@@ -292,12 +296,14 @@ window.Ship = (function() {
 })()
 
 window.Renderer = (function() {
+  'use strict'
+
   var klass = function Renderer(canvas, world_size, canvas_size) {
     this.context     = canvas.getContext('2d')
-    this.world_size  = { width: new Decimal(world_size.width),  height: new Decimal(world_size.height) }
-    this.canvas_size = { width: new Decimal(canvas_size.width), height: new Decimal(canvas_size.height) }
-    this.origin      = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 },
-    this.offset      = { x: 0, y: 0 },
+    this.world_size  = { 'width': new Decimal(world_size.width),  'height': new Decimal(world_size.height) }
+    this.canvas_size = { 'width': new Decimal(canvas_size.width), 'height': new Decimal(canvas_size.height) }
+    this.origin      = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 }
+    this.offset      = { x: 0, y: 0 }
     this.zoom        = new Decimal(1)
     this.initCanvas(canvas)
   }
@@ -330,7 +336,7 @@ window.Renderer = (function() {
 
   klass.prototype.convertLocalToCanvas = function(parent, local_pos) {
     var parent_coords = parent.getCoordinates(),
-        local_coords  = CelestialObject.posToCoordinates(local_pos)
+        local_coords  = window.CelestialObject.posToCoordinates(local_pos)
     return this.convertWorldToCanvas({ x: parent_coords.x.plus(local_coords.x), y: parent_coords.y.plus(local_coords.y) })
   }
 
@@ -353,6 +359,8 @@ window.Renderer = (function() {
 })()
 
 window.Simulator = (function() {
+  'use strict'
+
   var klass = function Simulator(time, elements, tick_size, debug) {
     this.t         = time
     this.elements  = elements
@@ -401,7 +409,7 @@ window.Simulator = (function() {
 
       if (this.running) {
         if (this.launches.length > 0 && this.t > this.launches[0][0]) {
-          launch_data = this.launches.shift()[1]
+          var launch_data = this.launches.shift()[1]
           var ship
           if (launch_data.launch_from) {
             ship = new window.Ship(launch_data.parent, 50, launch_data.launch_from.getVelocity(), launch_data.launch_from.pos, launch_data.launch_from.getPrograde(), launch_data.heading)
@@ -424,8 +432,8 @@ window.Simulator = (function() {
             debugData(element.v,       'vel')
             debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
             debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
-            var kd = CelestialObject.calcObjectDistance(kerbin, element),
-                dd = CelestialObject.calcObjectDistance(duna, element)
+            var kd = window.CelestialObject.calcObjectDistance(kerbin, element),
+                dd = window.CelestialObject.calcObjectDistance(duna, element)
             debugData(kd, 'kdist')
             debugData(dd, 'ddist')
           }
@@ -481,14 +489,13 @@ window.Simulator = (function() {
   klass.prototype.showSimDetails = function(renderer) {
     debugData(renderer.zoom, 'zoom')
     debugData(Math.floor(this.t / 21600) + ' -- ' + this.t, 'day')
-    debugData(this.tick_size , 'warp')
+    debugData(this.tick_size, 'warp')
   }
 
   function debugData(data, id) {
     var el = document.getElementById(id)
-    if (el) el.innerHTML = data
+    if (el) { el.innerHTML = data }
   }
 
   return klass
 })()
-
