@@ -136,8 +136,9 @@ window.CelestialObject = (function() {
 })()
 
 window.Planet = (function() {
-  var klass = function Planet(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
+  var klass = function Planet(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde, soi) {
     this.initializeParameters(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
+    this.soi = soi
   }
 
   klass.prototype = Object.create(CelestialObject.prototype)
@@ -145,6 +146,10 @@ window.Planet = (function() {
 
   klass.prototype.getPrograde = function() {
     return this.pos.phi.minus('' + Math.PI / 2)
+  }
+
+  klass.prototype.inSoi = function(ship) {
+    return CelestialObject.calcObjectDistance(this, ship).lessThan(this.soi)
   }
 
   return klass
@@ -181,7 +186,7 @@ window.Ship = (function() {
   klass.prototype.constructor = klass
 
   klass.prototype.setManeuvers = function(maneuvers) {
-    this.maneuvers = maneuvers
+    this.maneuvers = maneuvers || []
   }
 
   klass.prototype.setTarget = function(target) {
@@ -193,6 +198,10 @@ window.Ship = (function() {
     var d = CelestialObject.calcObjectDistance(this, this.target)
     if (this.nearest_approach === null || d < this.nearest_approach) {
       this.nearest_approach = d
+    }
+    if (d < this.target.soi) {
+      console.log('Entered target\'s sphere of influence')
+      s.pause()
     }
   }
 
@@ -350,6 +359,7 @@ window.Simulator = (function() {
     this.tick_size = tick_size
     this.running   = false
     this.debug     = debug
+    this.launches  = []
   }
 
   klass.prototype.track = function(celestial_object) {
@@ -377,29 +387,51 @@ window.Simulator = (function() {
     (function render() {
       now = new Date()
       renderer.clear()
-      for (var i = this.elements.length; i--; ) {
-        var element = this.elements[i]
-        element.step(this.tick_size)
+
+      if (this.running) {
+        for (var i = this.elements.length; i--; ) {
+          this.elements[i].step(this.tick_size)
+        }
       }
+
       if (this.tracking) {
         var coords = this.tracking.getCoordinates()
         renderer.offset = { x: coords.x, y: coords.y }
       }
 
-      for (var i = this.elements.length; i--; ) {
-        var element = this.elements[i]
-        if (this.debug === element.color) {
-          debugData(element.pos.r,   'r')
-          debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
-          debugData(element.v,       'vel')
-          debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
-          debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
-          var kd = CelestialObject.calcObjectDistance(kerbin, element),
-              dd = CelestialObject.calcObjectDistance(duna, element)
-          debugData(kd, 'kdist')
-          debugData(dd, 'ddist')
+      if (this.running) {
+        if (this.launches.length > 0 && this.t > this.launches[0][0]) {
+          launch_data = this.launches.shift()[1]
+          var ship
+          if (launch_data.launch_from) {
+            ship = new window.Ship(launch_data.parent, 50, launch_data.launch_from.getVelocity(), launch_data.launch_from.pos, launch_data.launch_from.getPrograde(), launch_data.heading)
+          } else {
+            ship = new window.Ship(launch_data.parent, 50, launch_data.velocity, launch_data.pos, launch_data.prograde, launch_data.heading)
+          }
+          ship.setTime(this.t)
+          ship.setMaxAcceleration(launch_data.max_accel)
+          ship.setThrottle(launch_data.throttle)
+          ship.setManeuvers(launch_data.maneuvers)
+          ship.setTarget(duna)
+          this.elements.unshift(ship)
         }
-        element.dropBreadcrumb(this.t)
+
+        for (var i = this.elements.length; i--; ) {
+          var element = this.elements[i]
+          if (this.debug === element.color) {
+            debugData(element.pos.r,   'r')
+            debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
+            debugData(element.v,       'vel')
+            debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
+            debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
+            var kd = CelestialObject.calcObjectDistance(kerbin, element),
+                dd = CelestialObject.calcObjectDistance(duna, element)
+            debugData(kd, 'kdist')
+            debugData(dd, 'ddist')
+          }
+          element.dropBreadcrumb(this.t)
+        }
+        this.t += this.tick_size
       }
       this.showSimDetails(renderer)
 
@@ -413,19 +445,13 @@ window.Simulator = (function() {
         }
       }
       last_run = now
-      this.t += this.tick_size
-      if (launches.length > 0 && this.t > launches[0][0]) {
-        launch_data = launches.shift()[1]
-        var ship = new Ship(sun, 50, kerbin.getVelocity(), kerbin.pos, kerbin.getPrograde(), launch_data.angle)
-        ship.setTime(this.t)
-        ship.setMaxAcceleration(0.2)
-        ship.setThrottle(launch_data.throttle)
-        ship.setManeuvers(maneuvers)
-        ship.setTarget(duna)
-        this.elements.unshift(ship)
-      }
-      if (this.running) window.requestAnimationFrame(render.bind(this))
+      window.requestAnimationFrame(render.bind(this))
     }.bind(this))()
+  }
+
+  klass.prototype.registerShipLaunch = function(launch_data) {
+    this.launches.push(launch_data)
+    this.launches = this.launches.sort()
   }
 
   klass.prototype.faster = function() {
@@ -438,6 +464,10 @@ window.Simulator = (function() {
     if (this.tick_size > 1) {
       this.tick_size *= 0.1
     }
+  }
+
+  klass.prototype.pause = function() {
+    this.running = false
   }
 
   klass.prototype.togglePaused = function(renderer) {
@@ -460,54 +490,5 @@ window.Simulator = (function() {
   }
 
   return klass
-})();
-
-var sun       = new Sun(1.1723328e18, 2.616e8),
-    kerbin    = new Planet(sun, 6e5,   '#33F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2),
-    duna      = new Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2),
-    launches  = [[1.8872e7, { angle: 0.31 * Math.PI, throttle: 1 }]],
-    maneuvers = [[1.907e7, { heading: Math.PI }], [1.92999e7, { throttle: 0 }], [1.93e7, null]]
-
-;(function() {
-  var size     = 2.3e10,
-      world    = { width: size, height: size },
-      canvas   = { width: 500, height: 500 },
-      renderer = new Renderer(document.getElementById('flightplan'), world, canvas),
-      t        = 1.88719e7,
-      s        = new Simulator(t, [sun, duna, kerbin], 1)
-  s.track(kerbin)
-  renderer.zoomTo(1)
-  s.run(renderer)
-  document.getElementById('pause').addEventListener('click', function() { s.togglePaused(renderer) })
-  document.getElementById('zoom_in').addEventListener('click', renderer.zoomIn.bind(renderer))
-  document.getElementById('zoom_out').addEventListener('click', renderer.zoomOut.bind(renderer))
-  document.getElementById('faster').addEventListener('click', s.faster.bind(s))
-  document.getElementById('slower').addEventListener('click', s.slower.bind(s))
-  window.onkeyup = function(e) {
-    var key = e.keyCode ? e.keyCode : e.which
-
-    if (key === 27 || key === 32) {
-      // esc
-      s.togglePaused(renderer)
-    } else if (key === 187) {
-      // +
-      renderer.zoomIn()
-    } else if (key === 189) {
-      // -
-      renderer.zoomOut()
-    } else if (key === 190) {
-      // >
-      s.faster()
-    } else if (key === 188) {
-      // <
-      s.slower()
-    } else if (key === 221) {
-      // [
-      s.trackNext()
-    } else if (key === 219) {
-      // ]
-      s.trackPrev()
-    }
-  }
 })()
 
