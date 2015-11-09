@@ -1,7 +1,7 @@
 var sun       = new window.Sun(1.1723328e18, 2.616e8),
     kerbin    = new window.Planet(sun, 6e5,   '#77F', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, 8.4159286e7),
     duna      = new window.Planet(sun, 3.2e5, '#F33', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, 4.7921949e7),
-    ship1_man = [[1.907e7, { heading: Math.PI }], [1.924e7, { heading: -Math.PI / 2 }], [1.93e7, null]],
+    ship1_man = [[1.907e7, { heading: Math.PI }], [1.924e7, { heading: -Math.PI / 2 }], [1.93e7, { throttle: 0 }]],
     launches  = [
       [1.8872e7, {
         launch_from: kerbin,
