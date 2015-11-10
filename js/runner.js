@@ -1,30 +1,31 @@
 var sun       = new window.Sun(1.1723328e18, 2.616e8),
     kerbin    = new window.Planet('Kerbin', sun, 6e5,   '#7777FF', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, 8.4159286e7),
     duna      = new window.Planet('Duna',   sun, 3.2e5, '#FF3333', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, 4.7921949e7),
-    ship1_man = [[1.907e7, { heading: Math.PI }], [1.93e7, { throttle: 0 }]],
-    launches  = [
-      [1.8872e7, {
-        launch_from: kerbin,
-        heading:   0.31 * Math.PI,
+    ship1_man1= new window.Maneuver( ),
+    plan      = new window.FlightPlan('ship1', 1.8872e7, duna).scheduleLaunchFromPlanet(
+      kerbin,
+      0.31 * Math.PI,
+      {
         throttle:  1,
         max_accel: 0.2,
-        maneuvers: ship1_man,
         parent:    sun
-      }]
-    ],
+      }
+    ),
     size      = 2.3e10,
     world     = { width: size, height: size },
     canvas    = { width: 500, height: 500 },
     renderer  = new window.Renderer(document.getElementById('flightplan'), world, canvas),
     t         = 1.88719e7,
     s         = new window.Simulator(t, [sun, duna, kerbin], 100)
+
+plan.addManeuver(function(t) { return t > 1.907e7 }, Math.PI, 1)
+plan.addManeuver(function(t) { return t > 1.93e7 }, 0, 0)
 s.track(kerbin)
 renderer.zoomTo(1)
 s.run(renderer)
-for (var i = launches.length; i--; ) {
-  s.registerShipLaunch(launches[i])
-}
-(function startListeners($, sim, renderer) {
+s.registerShipLaunch(plan)
+
+;(function startListeners($, sim, renderer) {
   $('#pause').on(      'click', function() { sim.togglePaused(renderer) })
   $('#zoom_in').on(    'click', renderer.zoomIn.bind(renderer))
   $('#zoom_out').on(   'click', renderer.zoomOut.bind(renderer))

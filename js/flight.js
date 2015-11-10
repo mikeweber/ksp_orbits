@@ -496,20 +496,11 @@ window.Simulator = (function() {
   klass.prototype.launchVehicles = function() {
     if (!this.running) return
 
-    if (this.launches.length > 0 && this.t > this.launches[0][0]) {
-      var launch_data = this.launches.shift()[1]
-      var ship
-      if (launch_data.launch_from) {
-        ship = new window.Ship('ship1', launch_data.parent, 50, launch_data.launch_from.getVelocity(), launch_data.launch_from.pos, launch_data.launch_from.getPrograde(), launch_data.heading)
-      } else {
-        ship = new window.Ship('ship1', launch_data.parent, 50, launch_data.velocity, launch_data.pos, launch_data.prograde, launch_data.heading)
+    for (var i = 0; i < this.launches.length; i++) {
+      var launch = this.launches[i]
+      if (launch.ready()) {
+        launch.activate(this.t)
       }
-      ship.setTime(this.t)
-      ship.setMaxAcceleration(launch_data.max_accel)
-      ship.setThrottle(launch_data.throttle)
-      ship.setManeuvers(launch_data.maneuvers)
-      ship.setTarget(duna)
-      this.bodies.unshift(ship)
     }
   }
 
@@ -575,13 +566,64 @@ window.Simulator = (function() {
   return klass
 })()
 
+window.FlightPlan = (function() {
+  var klass = function FlightPlan(ship_name, timestamp) {
+    this.ship_name = ship_name
+    this.timestamp = timestamp
+    this.maneuvers = []
+  }
+
+  klass.prototype.ready = function(t) {
+    return t < this.timestamp
+  }
+
+  klass.prototype.scheduleLaunchFromPlanet = function(planet, heading, launch_data) {
+    this.activate = function() {
+      this.ship = new window.Ship(this.ship_name, planet, 50, planet.getVelocity(), planet.pos, planet.getPrograde(), heading)
+      this.launchFromPlanet(planet)
+      this.ship.setMaxAcceleration(launch_data.max_accel)
+      this.ship.setThrottle(launch_data.throttle)
+      this.setManeuvers(launch_data.maneuvers)
+      if (launch_data.target) this.ship.setTarget(launch_data.target)
+    }
+    return this
+  }
+
+  klass.prototype.setManeuvers = function(maneuvers) {
+    for (var i = manuevers.length; i--; ) {
+      var man = maneuvers[i]
+      this.addManeuver(man.condition, man.heading, man.throttle)
+    }
+  }
+
+  klass.prototype.placeShip = function(parent_body, velocity, pos, prograde, heading) {
+    this.ship = new window.Ship(this.ship_name, parent_body, 50, velocity, pos, prograde, heading)
+    this.activate(launch_data)
+  }
+
+  klass.prototype.activate = function(launch_data) {
+    this.ship.setMaxAcceleration(launch_data.max_accel)
+    this.ship.setThrottle(launch_data.throttle)
+    this.ship.setManeuvers(launch_data.maneuvers)
+    if (launch_data.target) this.ship.setTarget(launch_data.target)
+  }
+
+  klass.prototype.addManeuver = function(condition, heading, throttle) {
+    var man = new window.Maneuver(this.ship, condition, heading, throttle)
+    this.maneuvers.push(man)
+    return man.getDeferred()
+  }
+
+  return klass
+})()
+
 window.Maneuver = (function($) {
-  var klass = function Maneuver(ship, condition, heading, throttle) {
-    this.ship
-    this.condition = condition
-    this.heading   = heading
-    this.throttle  = throttle
-    this.deffered  = $.Deferred()
+  var klass = function Maneuver(flight_plan, condition, heading, throttle) {
+    this.flight_plan = flight_plan
+    this.condition   = condition
+    this.heading     = heading
+    this.throttle    = throttle
+    this.deffered    = $.Deferred()
   }
 
   klass.prototype.activate = function(t) {
@@ -606,20 +648,6 @@ window.Maneuver = (function($) {
 
   return klass
 })(jQuery)
-
-window.FlightPlan = (function() {
-  var klass = function FlightPlan(ship) {
-    this.ship
-  }
-
-  klass.prototype.addManeuver = function(condition, heading, throttle, message) {
-    var man = new window.Maneuver(this.ship, condition, heading, throttle, message)
-    this.maneuvers.push(man)
-    return man.getDeferred()
-  }
-
-  return klass
-})()
 
 window.Helper = {
   isBlank: function (x) {
