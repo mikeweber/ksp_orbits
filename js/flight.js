@@ -1,10 +1,17 @@
 /* global window Decimal Object console */
+const YEAR = 9203545,
+      WEEK = 201600,
+      DAY  = 21600,
+      HOUR = 3600,
+      MIN  = 60
+
 window.CelestialObject = (function() {
   'use strict'
 
   var klass = function CelestialObject() {}
 
-  klass.prototype.initializeParameters = function(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
+  klass.prototype.initializeParameters = function(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
+    this.name     = name
     this.parent   = parent
     this.radius   = radius
     this.color    = color
@@ -15,9 +22,19 @@ window.CelestialObject = (function() {
     this.m        = this.pos.phi
     this.e        = new Decimal(e)
     this.prograde = new Decimal('' + prograde)
-    this.last_breadcrumb  = this.t
-    this.breadcrumb_delta = 201600
-    this.breadcrumbs = []
+    this.last_breadcrumb  = 0
+    this.breadcrumb_delta = WEEK
+    this.trail_length     = 25
+    this.breadcrumbs      = []
+  }
+
+  klass.prototype.getOrbitalPeriod = function() {
+    return this.getSemiMajorAxis().toPower(3).dividedBy(this.mu).sqrt().times('' + (2 * Math.PI))
+  }
+
+  klass.prototype.getSemiMajorAxis = function() {
+    // TODO: figure this out
+    return new Decimal(1000)
   }
 
   klass.calcObjectDistance = function(obj1, obj2) {
@@ -44,6 +61,7 @@ window.CelestialObject = (function() {
         r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(v)))))
         // phi = new Decimal('' + Math.atan2(e.times('' + Math.sin(v)), one.plus(e.times('' + Math.cos(v)))))
     this.pos = { 'r': r, phi: phi }
+    this.dropBreadcrumb(this.t)
   }
 
   klass.prototype.getHeadingX = function() {
@@ -112,7 +130,7 @@ window.CelestialObject = (function() {
 
     this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
     this.last_breadcrumb = t
-    if (this.breadcrumbs.length > 100) {
+    if (this.breadcrumbs.length >= this.trail_length) {
       this.breadcrumbs.shift()
     }
   }
@@ -124,7 +142,8 @@ window.CelestialObject = (function() {
           coords = renderer.convertLocalToCanvas(el.parent, el.pos)
       ctx.beginPath()
       ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI)
-      ctx.fillStyle = this.color
+      var color = window.Helper.shadeRGBColor(this.color, -(this.breadcrumbs.length - i) * 0.005)
+      ctx.fillStyle = color
       ctx.fill()
     }
   }
@@ -143,13 +162,18 @@ window.CelestialObject = (function() {
 window.Planet = (function() {
   'use strict'
 
-  var klass = function Planet(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde, soi) {
-    this.initializeParameters(parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
-    this.soi = soi
+  var klass = function Planet(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde, soi) {
+    this.initializeParameters(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
+    this.soi          = soi
+    this.trail_length = Math.floor(this.getOrbitalPeriod() / WEEK)
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
+
+  klass.prototype.getSemiMajorAxis = function() {
+    return this.a
+  }
 
   klass.prototype.getPrograde = function() {
     return this.pos.phi.minus('' + Math.PI / 2)
@@ -166,7 +190,7 @@ window.Sun = (function() {
   'use strict'
 
   var klass = function Sun(mu, radius) {
-    this.initializeParameters(null, radius, '#FF0', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0)
+    this.initializeParameters('Sun', null, radius, '#FFFF00', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
@@ -178,7 +202,8 @@ window.Sun = (function() {
     return { x: new Decimal(0), y: new Decimal(0) }
   }
   klass.prototype.dropBreadcrumb = function() {}
-  klass.prototype.renderBreadcrumb = function() {}
+  klass.prototype.renderBreadcrumbs = function() {}
+  klass.prototype.getOrbitalPeriod = function() {}
 
   return klass
 })()
@@ -186,15 +211,26 @@ window.Sun = (function() {
 window.Ship = (function() {
   'use strict'
 
-  var klass = function   Ship(parent, radius,            v,    pos,    prograde, heading) {
-    this.initializeParameters(parent, radius, '#FFF', 0, v, 0, pos, 0, prograde)
+  var klass = function   Ship(name, parent, radius,            v,       pos,    prograde, heading) {
+    this.initializeParameters(name, parent, radius, '#FFFFFF', 0, v, 0, pos, 0, prograde)
     this.setHeading(heading)
-    this.breadcrumb_delta = 21600
+    this.breadcrumb_delta = DAY
     this.nearest_approach = null
+    this.accel            = new Decimal(0)
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
+
+  klass.prototype.dropBreadcrumb = function(t) {
+    if (t - this.last_breadcrumb < this.breadcrumb_delta) return
+
+    this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
+    this.last_breadcrumb = t
+    if (this.breadcrumbs.length >= this.trail_length) {
+      this.breadcrumbs.shift()
+    }
+  }
 
   klass.prototype.setManeuvers = function(maneuvers) {
     this.maneuvers = maneuvers || []
@@ -233,6 +269,7 @@ window.Ship = (function() {
     this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.setPosition(new_coords)
     this.trackNearestApproach(this.t)
+    this.dropBreadcrumb(this.t)
   }
 
   klass.prototype.alterCourse = function(t) {
@@ -256,6 +293,10 @@ window.Ship = (function() {
   }
 
   klass.prototype.setThrottle = function(throttle) {
+    if (window.Helper.isBlank(throttle)) return
+
+    if (throttle < 0) throttle = 0
+    if (throttle > 1) throttle = 1
     this.accel = this.max_accel.times(throttle)
   }
 
@@ -267,6 +308,8 @@ window.Ship = (function() {
   }
 
   klass.prototype.setHeading = function(heading) {
+    if (window.Helper.isBlank(heading)) return
+
     this.heading = this.getPrograde().plus('' + heading)
   }
 
@@ -299,12 +342,13 @@ window.Renderer = (function() {
   'use strict'
 
   var klass = function Renderer(canvas, world_size, canvas_size) {
-    this.context     = canvas.getContext('2d')
-    this.world_size  = { 'width': new Decimal(world_size.width),  'height': new Decimal(world_size.height) }
-    this.canvas_size = { 'width': new Decimal(canvas_size.width), 'height': new Decimal(canvas_size.height) }
-    this.origin      = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 }
-    this.offset      = { x: 0, y: 0 }
-    this.zoom        = new Decimal(1)
+    this.context      = canvas.getContext('2d')
+    this.context.font = '12px "Times New Roman"'
+    this.world_size   = { 'width': new Decimal(world_size.width),  'height': new Decimal(world_size.height) }
+    this.canvas_size  = { 'width': new Decimal(canvas_size.width), 'height': new Decimal(canvas_size.height) }
+    this.origin       = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 }
+    this.offset       = { x: 0, y: 0 }
+    this.zoom         = new Decimal(1)
     this.initCanvas(canvas)
   }
 
@@ -330,8 +374,13 @@ window.Renderer = (function() {
   klass.prototype.clear = function() {
     this.context.beginPath()
     this.context.rect(0, 0, this.canvas_size.width, this.canvas_size.height)
-    this.context.fillStyle = '#000'
+    this.context.fillStyle = '#000000'
     this.context.fill()
+  }
+
+  klass.prototype.print = function(text, x, y) {
+    this.context.fillStyle = '#FFF'
+    this.context.fillText(text, x, y)
   }
 
   klass.prototype.convertLocalToCanvas = function(parent, local_pos) {
@@ -361,12 +410,12 @@ window.Renderer = (function() {
 window.Simulator = (function() {
   'use strict'
 
-  var klass = function Simulator(time, elements, tick_size, debug) {
+  var klass = function Simulator(time, bodies, tick_size, debug) {
     this.t         = time
-    this.elements  = elements
+    this.setBodies(bodies)
     this.tick_size = tick_size
     this.running   = false
-    this.debug     = debug
+    this.debugger  = debug
     this.launches  = []
   }
 
@@ -383,78 +432,95 @@ window.Simulator = (function() {
   }
 
   klass.prototype.moveTracker = function(i) {
-    this.tracking = this.elements[(this.elements.indexOf(this.tracking) + this.elements.length + i) % this.elements.length]
+    this.tracking = this.bodies[(this.bodies.indexOf(this.tracking) + this.bodies.length + i) % this.bodies.length]
+  }
+
+  klass.prototype.setBodies = function(bodies) {
+    this.bodies = bodies
+  }
+
+  klass.prototype.getBodies = function() {
+    return this.bodies
   }
 
   klass.prototype.run = function(renderer) {
     this.running = true
     var last_run = new Date(), now
-    for (var i = this.elements.length; i--; ) {
-      this.elements[i].setTime(this.t)
+
+    for (var i = this.bodies.length; i--; ) {
+      this.bodies[i].setTime(this.t)
     }
+
     (function render() {
       now = new Date()
-      renderer.clear()
+      this.stepBodies()
+      focusOnBody(renderer, this.tracking)
+      this.launchVehicles()
+      this.debug()
+      this.tick()
 
-      if (this.running) {
-        for (var i = this.elements.length; i--; ) {
-          this.elements[i].step(this.tick_size)
-        }
-      }
-
-      if (this.tracking) {
-        var coords = this.tracking.getCoordinates()
-        renderer.offset = { x: coords.x, y: coords.y }
-      }
-
-      if (this.running) {
-        if (this.launches.length > 0 && this.t > this.launches[0][0]) {
-          var launch_data = this.launches.shift()[1]
-          var ship
-          if (launch_data.launch_from) {
-            ship = new window.Ship(launch_data.parent, 50, launch_data.launch_from.getVelocity(), launch_data.launch_from.pos, launch_data.launch_from.getPrograde(), launch_data.heading)
-          } else {
-            ship = new window.Ship(launch_data.parent, 50, launch_data.velocity, launch_data.pos, launch_data.prograde, launch_data.heading)
-          }
-          ship.setTime(this.t)
-          ship.setMaxAcceleration(launch_data.max_accel)
-          ship.setThrottle(launch_data.throttle)
-          ship.setManeuvers(launch_data.maneuvers)
-          ship.setTarget(duna)
-          this.elements.unshift(ship)
+      if (now - last_run > 14) {
+        renderer.clear()
+        for (var i = this.bodies.length; i--; ) {
+          this.bodies[i].renderBreadcrumbs(renderer)
         }
 
-        for (var i = this.elements.length; i--; ) {
-          var element = this.elements[i]
-          if (this.debug === element.color) {
-            debugData(element.pos.r,   'r')
-            debugData(element.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
-            debugData(element.v,       'vel')
-            debugData(element.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
-            debugData(element.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
-            var kd = window.CelestialObject.calcObjectDistance(kerbin, element),
-                dd = window.CelestialObject.calcObjectDistance(duna, element)
-            debugData(kd, 'kdist')
-            debugData(dd, 'ddist')
-          }
-          element.dropBreadcrumb(this.t)
+        for (var i = this.bodies.length; i--; ) {
+          this.bodies[i].render(renderer)
         }
-        this.t += this.tick_size
-      }
-      this.showSimDetails(renderer)
-
-      if (now - last_run > 0.2) {
-        for (var i = this.elements.length; i--; ) {
-          this.elements[i].renderBreadcrumbs(renderer)
-        }
-
-        for (var i = this.elements.length; i--; ) {
-          this.elements[i].render(renderer)
-        }
+        this.showSimDetails(renderer)
       }
       last_run = now
       window.requestAnimationFrame(render.bind(this))
     }.bind(this))()
+  }
+
+  klass.prototype.stepBodies = function() {
+    if (!this.running) return
+
+    for (var i = this.bodies.length; i--; ) {
+      this.bodies[i].step(this.tick_size)
+    }
+  }
+
+  function focusOnBody(renderer, body) {
+    if (!body) return
+
+    renderer.offset = body.getCoordinates()
+  }
+
+  klass.prototype.registerLaunch = function(launch) {
+    this.launches.push(launch)
+  }
+
+  klass.prototype.launchVehicles = function() {
+    if (!this.running) return
+
+    if (this.launches.length > 0 && this.t > this.launches[0][0]) {
+      var launch_data = this.launches.shift()[1]
+      var ship
+      if (launch_data.launch_from) {
+        ship = new window.Ship('ship1', launch_data.parent, 50, launch_data.launch_from.getVelocity(), launch_data.launch_from.pos, launch_data.launch_from.getPrograde(), launch_data.heading)
+      } else {
+        ship = new window.Ship('ship1', launch_data.parent, 50, launch_data.velocity, launch_data.pos, launch_data.prograde, launch_data.heading)
+      }
+      ship.setTime(this.t)
+      ship.setMaxAcceleration(launch_data.max_accel)
+      ship.setThrottle(launch_data.throttle)
+      ship.setManeuvers(launch_data.maneuvers)
+      ship.setTarget(duna)
+      this.bodies.unshift(ship)
+    }
+  }
+
+  klass.prototype.debug = function() {
+    if (!this.debugger) return
+
+    this.debugger.debug(this)
+  }
+
+  klass.prototype.tick = function() {
+    this.t += this.tick_size
   }
 
   klass.prototype.registerShipLaunch = function(launch_data) {
@@ -487,10 +553,107 @@ window.Simulator = (function() {
   }
 
   klass.prototype.showSimDetails = function(renderer) {
-    debugData(renderer.zoom, 'zoom')
-    debugData(Math.floor(this.t / 21600) + ' -- ' + this.t, 'day')
-    debugData(this.tick_size, 'warp')
+    renderer.print('Zoom: ' + renderer.zoom, 5, 10)
+    renderer.print('Warp: ' + this.tick_size, 5, 20)
+    renderer.print(this.getKerbalDate(), 5, 30)
+    renderer.print('T+' + this.t, 5, 40)
   }
+
+  klass.prototype.getKerbalDate = function() {
+    var year   = Math.floor(this.t / YEAR) + 1,
+        day    = Math.floor((this.t % YEAR) / DAY) + 1,
+        hour   = Math.floor(((this.t % YEAR) % DAY) / HOUR),
+        minute = Math.floor((((this.t % YEAR) % DAY) % HOUR) / MIN)
+    if (day < 100) {
+      if (day < 10) day = '0' + '' + day
+      day = '0' + '' + day
+    }   
+    if (minute < 10) minute = '0' + '' + minute
+    return 'Year ' + year + ', Day ' + day + ' ' + hour + ':' + minute
+  }
+
+  return klass
+})()
+
+window.Maneuver = (function($) {
+  var klass = function Maneuver(ship, condition, heading, throttle) {
+    this.ship
+    this.condition = condition
+    this.heading   = heading
+    this.throttle  = throttle
+    this.deffered  = $.Deferred()
+  }
+
+  klass.prototype.activate = function(t) {
+    if (!this.ready(t, this.ship)) { return false }
+
+    this.ship.alterHeading(this.heading)
+    this.ship.setThrottle(this.throttle)
+    this.alertCourseChange(t)
+  }
+
+  klass.prototype.ready = function(t) {
+    return this.condition(t, this.ship)
+  }
+
+  klass.prototype.alertCourseChange = function(t) {
+    this.getDeferred().resolve({ t: t, ship: this.ship })
+  }
+
+  klass.prototype.getDeferred = function() {
+    return this.deferred
+  }
+
+  return klass
+})(jQuery)
+
+window.FlightPlan = (function() {
+  var klass = function FlightPlan(ship) {
+    this.ship
+  }
+
+  klass.prototype.addManeuver = function(condition, heading, throttle, message) {
+    var man = new window.Maneuver(this.ship, condition, heading, throttle, message)
+    this.maneuvers.push(man)
+    return man.getDeferred()
+  }
+
+  return klass
+})()
+
+window.Helper = {
+  isBlank: function (x) {
+    return (x === null || typeof(x) === 'undefined')
+  },
+  shadeRGBColor: function(color, percent) {
+    // from http://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
+    var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF
+    return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1)
+  }
+}
+
+window.Debugger = (function($) {
+  var klass = function Debugger(body_name) {
+    this.name = body_name
+  }
+
+  klass.prototype.debug = function(sim) {
+    for (var i = sim.bodies.length; i--; ) {
+      var body = sim.bodies[i]
+      if (this.name === body.name) {
+        debugData(body.pos.r,   'r')
+        debugData(body.pos.phi.times(180).dividedBy('' + Math.PI), 'phi')
+        debugData(body.v,       'vel')
+        debugData(body.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
+        debugData(body.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
+        var kd = window.CelestialObject.calcObjectDistance(kerbin, body),
+            dd = window.CelestialObject.calcObjectDistance(duna, body)
+        debugData(kd, 'kdist')
+        debugData(dd, 'ddist')
+      }
+    }
+  }
+
 
   function debugData(data, id) {
     var el = document.getElementById(id)
@@ -498,4 +661,4 @@ window.Simulator = (function() {
   }
 
   return klass
-})()
+})(jQuery)

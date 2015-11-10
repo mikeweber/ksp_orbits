@@ -3,45 +3,22 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <title>Flight plan</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
   </head>
   <body>
-    <canvas id='flightplan' style='float: left; margin-right: 10px;'></canvas>
-    <br />
-    <div id='controls'>
-      <button id='pause' title='Pause/Run (esc or space)'>=</button>
-      <button id='zoom_out' title='Zoom Out (-)'>-</button>
-      <button id='zoom_in' title='Zoom In (+)'>+</button>
-      <button id='slower' title='Slow Down (<)'>&laquo;</button>
-      <button id='faster' title='Speed Up (>)'>&raquo;</button>
-      <button id='prev_target' title='Prev Target (&lbrack;)'>&lbrack;</button>
-      <button id='next_target' title='Next Target (&rbrack;)'>&rbrack;</button>
+    <div>
+      <canvas id='flightplan' style='float: left; margin-right: 10px;'></canvas>
+      <div id='controls' style='float: left; margin: 10px 0;'>
+        <button id='pause' title='Pause/Run (esc or space)'>=</button>
+        <button id='zoom_out' title='Zoom Out (-)'>-</button>
+        <button id='zoom_in' title='Zoom In (+)'>+</button>
+        <button id='slower' title='Slow Down (<)'>&laquo;</button>
+        <button id='faster' title='Speed Up (>)'>&raquo;</button>
+        <button id='prev_target' title='Prev Target (&lbrack;)'>&lbrack;</button>
+        <button id='next_target' title='Next Target (&rbrack;)'>&rbrack;</button>
+      </div>
     </div>
-    <div id='info'>
-      <dl>
-        <dt>Day</dt>
-        <dd id='day'></dd>
-        <dt>Zoom</dt>
-        <dd id='zoom'></dd>
-        <dt>Warp</dt>
-        <dd id='warp'></dd>
-      </dl>
-    </div>
-    <dl id='debug'>
-      <dt>R</dt>
-      <dd id='r'></dd>
-      <dt>Phi</dt>
-      <dd id='phi'></dd>
-      <dt>Velocity</dt>
-      <dd id='vel'></dd>
-      <dt>Distance from Kerbin</dt>
-      <dd id='kdist'></dd>
-      <dt>Distance to Duna</dt>
-      <dd id='ddist'></dd>
-      <dt>Prograde</dt>
-      <dd id='prograde'></dd>
-      <dt>Heading</dt>
-      <dd id='heading'></dd>
-    </dl>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script type='text/javascript' src='js/decimal.min.js'></script>
     <script type='text/javascript' src='js/flight.js'></script>
     <script type='text/javascript' src='js/runner.js'></script>
