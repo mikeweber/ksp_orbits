@@ -8,14 +8,17 @@
   <body>
     <div>
       <canvas id='flightplan' style='float: left; margin-right: 10px;'></canvas>
-      <div id='controls' style='float: left; margin: 10px 0;'>
-        <button id='pause' title='Pause/Run (esc or space)'>=</button>
-        <button id='zoom_out' title='Zoom Out (-)'>-</button>
-        <button id='zoom_in' title='Zoom In (+)'>+</button>
-        <button id='slower' title='Slow Down (<)'>&laquo;</button>
-        <button id='faster' title='Speed Up (>)'>&raquo;</button>
-        <button id='prev_target' title='Prev Target (&lbrack;)'>&lbrack;</button>
-        <button id='next_target' title='Next Target (&rbrack;)'>&rbrack;</button>
+      <div style='float: left; margin: 10px 0;'>
+        <div id='controls'>
+          <button id='pause' title='Pause/Run (esc or space)'>=</button>
+          <button id='zoom_out' title='Zoom Out (-)'>-</button>
+          <button id='zoom_in' title='Zoom In (+)'>+</button>
+          <button id='slower' title='Slow Down (<)'>&laquo;</button>
+          <button id='faster' title='Speed Up (>)'>&raquo;</button>
+          <button id='prev_target' title='Prev Target (&lbrack;)'>&lbrack;</button>
+          <button id='next_target' title='Next Target (&rbrack;)'>&rbrack;</button>
+        </div>
+        <div id="status"></div>
       </div>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
