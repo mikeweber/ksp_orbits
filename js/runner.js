@@ -42,8 +42,8 @@ window.FlightStatus = (function($) {
     var now = new Date()
     if (now - this.last_run < this.refresh_interval) return
 
-    this.updateStat('launch_date', window.Helper.convertTimeToDate(ship.getLaunchTime()))
-    this.updateStat('mission_time', window.Helper.convertTimeToDate(ship.getMissionTime(t)))
+    this.updateStat('launch_date', window.Helper.convertTimeToDate(ship.getLaunchTime()), ship.getLaunchTime())
+    this.updateStat('mission_time', window.Helper.convertTimeToDate(ship.getMissionTime(t)), ship.getMissionTime(t))
     this.updateStat('soi', ship.getParent().name)
     this.updateStat('kerbin_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Kerbin')).dividedBy(1000).round() + 'km')
     this.updateStat('duna_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Duna')).dividedBy(1000).round() + 'km')
@@ -60,8 +60,9 @@ window.FlightStatus = (function($) {
     return $('<dt>').html(title)
   }
 
-  klass.prototype.updateStat = function(panel_id, stat) {
+  klass.prototype.updateStat = function(panel_id, stat, title) {
     this.getPanelFor(panel_id).html('' + stat)
+    this.getPanelFor(panel_id).prop('title', title)
   }
 
   klass.prototype.getPanelFor = function(panel_id) {
