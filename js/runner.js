@@ -18,12 +18,16 @@ window.FlightStatus = (function($) {
       .append(this.getPanelFor('launch_date'))
       .append(this.makeTitle('T+'))
       .append(this.getPanelFor('mission_time'))
+      .append(this.makeTitle('SOI'))
+      .append(this.getPanelFor('soi'))
       .append(this.makeTitle('Distance from Kerbin'))
       .append(this.getPanelFor('kerbin_distance'))
       .append(this.makeTitle('Distance from Duna'))
       .append(this.getPanelFor('duna_distance'))
       .append(this.makeTitle('Velocity'))
       .append(this.getPanelFor('vel'))
+      .append(this.makeTitle('Throttle'))
+      .append(this.getPanelFor('throttle'))
       .append(this.makeTitle('Prograde'))
       .append(this.getPanelFor('prograde'))
       .append(this.makeTitle('Heading'))
@@ -38,11 +42,13 @@ window.FlightStatus = (function($) {
 
     this.updateStat('launch_date', ship.getLaunchTime())
     this.updateStat('mission_time', ship.getMissionTime(t))
-    this.updateStat('kerbin_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Kerbin')))
-    this.updateStat('duna_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Duna')))
-    this.updateStat('vel', ship.getVelocity())
-    this.updateStat('prograde', ship.getPrograde())
-    this.updateStat('heading', ship.getHeading())
+    this.updateStat('soi', ship.getParent().name)
+    this.updateStat('kerbin_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Kerbin')).dividedBy(1000).round() + 'km')
+    this.updateStat('duna_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Duna')).dividedBy(1000).round() + 'km')
+    this.updateStat('vel', window.Helper.roundTo(ship.getVelocity(), 1) + 'm/s')
+    this.updateStat('throttle', window.Helper.roundTo(ship.getThrottle(), 1))
+    this.updateStat('prograde', window.Helper.radianToDegrees(ship.getPrograde()).round())
+    this.updateStat('heading', window.Helper.radianToDegrees(ship.heading).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
     this.updateStat('message', this.getMessage())
 
     this.last_run = now
@@ -53,7 +59,7 @@ window.FlightStatus = (function($) {
   }
 
   klass.prototype.updateStat = function(panel_id, stat) {
-    this.getPanelFor(panel_id).html(stat.toString())
+    this.getPanelFor(panel_id).html('' + stat)
   }
 
   klass.prototype.getPanelFor = function(panel_id) {
@@ -85,12 +91,14 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
     duna      = new window.Planet('Duna',   sun, 3.2e5, '#FF3333', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, 4.7921949e7),
     plan      = new window.FlightPlan('ship1', 1.8872e7).scheduleLaunchFromPlanet(
       kerbin,
-      sun,
-      0.31 * Math.PI,
+      70000,
       {
-        throttle:  1,
-        max_accel: 0.2,
-        target:    duna
+        throttle:         1,
+        max_accel:        0.2,
+        initial_angle:    -Math.PI,
+        heading:          0,
+        absolute_heading: false,
+        target:           duna
       }
     ),
     size      = 2.3e10,
@@ -98,23 +106,44 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
     canvas    = { width: 500, height: 500 },
     renderer  = new window.Renderer(document.getElementById('flightplan'), world, canvas),
     t         = 1.88719e7,
-    s         = new window.Simulator(t, [sun, duna, kerbin], 100),
-    stat      = new window.FlightStatus(s, 3, 'Launching from Kerbin')
+    s         = new window.Simulator(t, [sun, duna, kerbin], 1),
+    stat      = new window.FlightStatus(s, 1, 'Launching from Kerbin')
 
 $('#status').append(stat.getPanel())
 plan.addObserver(stat)
-plan.addManeuver(function(t, ship) { return t.greaterThan(1.9069e7) }, Math.PI, 1).done(function(observers) {
+plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
   for (var i = observers.length; i--; ) {
     observers[i].setMessage('Decelerating on approach to Duna')
   }
 })
-plan.addManeuver(function(t, ship) { return ship.getTarget().inSoi(ship) }, 0, 0).done(function(observers) {
+plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, s.getPlanet('Duna').getPrograde() - (Math.PI * 0.66), true, 1).done(function(observers) {
   for (var i = observers.length; i--; ) {
-    observers[i].setMessage('Near destination; shutting off engines')
+    observers[i].setMessage('Matching velocity and vector with planet')
   }
 })
+plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.13e5) }, 0, false, 0).done(function(observers) {
+  for (var i = observers.length; i--; ) {
+    observers[i].setMessage('Waiting for intercept...')
+  }
+})
+plan.addSOIChangeManeuver(s.getPlanet('Sun'), Math.PI * 0.727, true, 1).done(function(observers) {
+  for (var i = observers.length; i--; ) {
+    observers[i].setMessage('Left Kerbin SOI; setting course')
+  }
+})
+plan.addSOIChangeManeuver(s.getPlanet('Duna'), 0, false, 0).done(function(observers, ship, t) {
+  for (var i = observers.length; i--; ) {
+    observers[i].setMessage('Near destination; waiting for circularization')
+  }
+  var ex_time = t.plus(1200)
+  plan.addManeuver(function(t, ship) { return t.greaterThan(ex_time) }, Math.PI, false, 1).done(function(observers) {
+    for (var i = observers.length; i--; ) {
+      observers[i].setMessage('Circularizing')
+    }
+  })
+})
 s.track(kerbin)
-renderer.zoomTo(1)
+renderer.zoomTo(200)
 s.registerShipLaunch(plan)
 s.run(renderer)
 
@@ -132,12 +161,6 @@ s.run(renderer)
     if (key === 27 || key === 32) {
       // esc
       sim.togglePaused(renderer)
-    } else if (key === 187) {
-      // +
-      renderer.zoomIn()
-    } else if (key === 189) {
-      // -
-      renderer.zoomOut()
     } else if (key === 190) {
       // >
       sim.faster()
@@ -150,6 +173,17 @@ s.run(renderer)
     } else if (key === 219) {
       // ]
       sim.trackPrev()
+    }
+  })
+
+  $(window).on('keydown', function(e) {
+    var key = e.keyCode ? e.keyCode : e.which
+    if (key === 187) {
+      // +
+      renderer.zoomIn()
+    } else if (key === 189) {
+      // -
+      renderer.zoomOut()
     }
   })
 })(jQuery, s, renderer)
