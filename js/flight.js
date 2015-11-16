@@ -25,7 +25,7 @@ window.CelestialObject = (function() {
     this.prograde = new Decimal('' + prograde)
     this.last_breadcrumb  = 0
     this.breadcrumb_delta = WEEK
-    this.trail_length     = 25
+    this.trail_length     = 75
     this.breadcrumbs      = []
     this.bodies_in_soi    = []
     this.soi_observers    = []
@@ -431,7 +431,25 @@ window.Ship = (function() {
       var bodies = this.parent.getBodiesInSOI()
       for (var i = bodies.length; i--; ) {
         if (bodies[i].isInSOI(this)) {
-          switchSOI(this, bodies[i])
+          var new_parent = bodies[i],
+              old_coords = this.getLocalCoordinates(),
+              p_coords   = new_parent.getLocalCoordinates(),
+              new_coords = { x: old_coords.x.minus(p_coords.x), y: old_coords.y.minus(p_coords.y) },
+              p_vel      = new_parent.getVelocity(),
+              s_vel      = this.getVelocity(),
+              p_pro      = new_parent.getPrograde(),
+              s_pro      = this.getPrograde(),
+              p_vel_x    = p_vel.times('' + Math.cos(p_pro)),
+              p_vel_y    = p_vel.times('' + Math.sin(p_pro)),
+              s_vel_x    = s_vel.times('' + Math.cos(s_pro)),
+              s_vel_y    = s_vel.times('' + Math.sin(s_pro)),
+              vel_x      = s_vel_x.minus(p_vel_x),
+              vel_y      = s_vel_y.minus(p_vel_y)
+
+          this.parent = new_parent
+          this.setPosition(new_coords)
+          this.alterPrograde(vel_x, vel_y)
+          this.alterVelocity(vel_x, vel_y)
           this.just_checked_soi = true
           this.alertSOIChange(this.parent, t)
           return true

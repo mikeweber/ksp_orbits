@@ -1,4 +1,6 @@
 window.FlightStatus = (function($) {
+  'use strict'
+
   var klass = function FlightStatus(sim, refresh_interval, initial_message) {
     this.sim              = sim
     this.refresh_interval = refresh_interval * 1000
@@ -40,8 +42,8 @@ window.FlightStatus = (function($) {
     var now = new Date()
     if (now - this.last_run < this.refresh_interval) return
 
-    this.updateStat('launch_date', ship.getLaunchTime())
-    this.updateStat('mission_time', ship.getMissionTime(t))
+    this.updateStat('launch_date', window.Helper.convertTimeToDate(ship.getLaunchTime()))
+    this.updateStat('mission_time', window.Helper.convertTimeToDate(ship.getMissionTime(t)))
     this.updateStat('soi', ship.getParent().name)
     this.updateStat('kerbin_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Kerbin')).dividedBy(1000).round() + 'km')
     this.updateStat('duna_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Duna')).dividedBy(1000).round() + 'km')
@@ -106,11 +108,12 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
     canvas    = { width: 500, height: 500 },
     renderer  = new window.Renderer(document.getElementById('flightplan'), world, canvas),
     t         = 1.88719e7,
-    s         = new window.Simulator(t, [sun, duna, kerbin], 1),
+    s         = new window.Simulator(t, [sun, duna, kerbin], 100),
     stat      = new window.FlightStatus(s, 1, 'Launching from Kerbin')
 
 $('#status').append(stat.getPanel())
 plan.addObserver(stat)
+plan.addManeuver(function(t, ship) { s.track(ship); return true }, 0, false, 1)
 plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
   for (var i = observers.length; i--; ) {
     observers[i].setMessage('Decelerating on approach to Duna')
@@ -140,6 +143,12 @@ plan.addSOIChangeManeuver(s.getPlanet('Duna'), 0, false, 0).done(function(observ
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Circularizing')
     }
+
+    plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(observers) {
+      for (var i = observers.length; i--; ) {
+        observers[i].setMessage('Circularization complete; Shutting down engines')
+      }
+    })
   })
 })
 s.track(kerbin)
@@ -148,6 +157,8 @@ s.registerShipLaunch(plan)
 s.run(renderer)
 
 ;(function startListeners($, sim, renderer) {
+  'use strict'
+
   $('#pause').on(      'click', function() { sim.togglePaused(renderer) })
   $('#zoom_in').on(    'click', renderer.zoomIn.bind(renderer))
   $('#zoom_out').on(   'click', renderer.zoomOut.bind(renderer))
