@@ -46,7 +46,7 @@ window.FlightStatus = (function($) {
     this.updateStat('kerbin_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Kerbin')).dividedBy(1000).round() + 'km')
     this.updateStat('duna_distance', window.CelestialObject.calcObjectDistance(ship, this.sim.getPlanet('Duna')).dividedBy(1000).round() + 'km')
     this.updateStat('vel', window.Helper.roundTo(ship.getVelocity(), 1) + 'm/s')
-    this.updateStat('throttle', window.Helper.roundTo(ship.getThrottle(), 1))
+    this.updateStat('throttle', window.Helper.roundTo(new Decimal(ship.getThrottle()), 1))
     this.updateStat('prograde', window.Helper.radianToDegrees(ship.getPrograde()).round())
     this.updateStat('heading', window.Helper.radianToDegrees(ship.heading).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
     this.updateStat('message', this.getMessage())
