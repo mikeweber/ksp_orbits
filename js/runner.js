@@ -30,6 +30,14 @@ window.FlightStatus = (function($) {
       .append(this.getPanelFor('vel'))
       .append(this.makeTitle('Throttle'))
       .append(this.getPanelFor('throttle'))
+      .append(this.makeTitle('Altitude'))
+      .append(this.getPanelFor('r'))
+      .append(this.makeTitle('Anomoly'))
+      .append(this.getPanelFor('phi'))
+      .append(this.makeTitle('Ap'))
+      .append(this.getPanelFor('ap'))
+      .append(this.makeTitle('Pe'))
+      .append(this.getPanelFor('pe'))
       .append(this.makeTitle('Prograde'))
       .append(this.getPanelFor('prograde'))
       .append(this.makeTitle('Heading'))
@@ -50,8 +58,13 @@ window.FlightStatus = (function($) {
     this.updateStat('vel', window.Helper.roundTo(ship.getVelocity(), 1) + 'm/s')
     this.updateStat('throttle', window.Helper.roundTo(new Decimal(ship.getThrottle()), 1))
     this.updateStat('prograde', window.Helper.radianToDegrees(ship.getPrograde()).round())
+    this.updateStat('r', ship.pos.r.round().dividedBy(1000) + 'km')
+    this.updateStat('phi', window.Helper.radianToDegrees(ship.pos.phi).round())
     this.updateStat('heading', window.Helper.radianToDegrees(ship.heading).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
     this.updateStat('message', this.getMessage())
+    var params = ship.calcOrbitalParams()
+    this.updateStat('ap', params.ap.round().dividedBy(1000) + 'km')
+    this.updateStat('pe', params.pe.round().dividedBy(1000) + 'km')
 
     this.last_run = now
   }
@@ -96,8 +109,9 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
       kerbin,
       70000,
       {
-        throttle:         1,
+        throttle:         0,
         max_accel:        0.2,
+        fuel_consumption: 0.19,
         initial_angle:    -Math.PI,
         heading:          0,
         absolute_heading: false,
@@ -114,7 +128,7 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
 
 $('#status').append(stat.getPanel())
 plan.addObserver(stat)
-plan.addManeuver(function(t, ship) { s.track(ship); return true }, 0, false, 1)
+plan.addManeuver(function(t, ship) { s.track(ship); return true }, 0, false, 0)
 plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
   for (var i = observers.length; i--; ) {
     observers[i].setMessage('Decelerating on approach to Duna')

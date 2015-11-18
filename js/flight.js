@@ -280,7 +280,7 @@ window.Ship = (function() {
     this.setHeading(heading, absolute_heading)
     this.breadcrumb_delta = DAY
     this.nearest_approach = null
-    this.accel            = new Decimal(0)
+    this.max_accel        = new Decimal(0)
     this.maneuvers        = []
     this.observers        = []
   }
@@ -314,8 +314,8 @@ window.Ship = (function() {
     var gravity    = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
         g_x        = gravity.times(this.getGravityWellX()),
         g_y        = gravity.times(this.getGravityWellY()),
-        a_x        = this.accel.times(this.getHeadingX()),
-        a_y        = this.accel.times(this.getHeadingY()),
+        a_x        = this.getAcceleration().times(this.getHeadingX()),
+        a_y        = this.getAcceleration().times(this.getHeadingY()),
         accel_x    = a_x.plus(g_x).times(dt),
         accel_y    = a_y.plus(g_y).times(dt),
         vel_x      = this.v.times(this.getProgradeX()),
@@ -332,6 +332,10 @@ window.Ship = (function() {
     this.detectSOIChange(t)
   }
 
+  klass.prototype.getAcceleration = function() {
+    return this.max_accel.times(this.getThrottle())
+  }
+
   klass.prototype.setMaxAcceleration = function(accel) {
     this.max_accel = new Decimal(accel)
   }
@@ -342,7 +346,6 @@ window.Ship = (function() {
     if (throttle < 0) throttle = 0
     if (throttle > 1) throttle = 1
     this.throttle = throttle
-    this.accel = this.max_accel.times(this.throttle)
   }
 
   klass.prototype.getThrottle = function() {
@@ -494,6 +497,19 @@ window.Ship = (function() {
 
   klass.prototype.getObservers = function() {
     return this.observers
+  }
+
+  klass.prototype.calcOrbitalParams = function() {
+    // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
+    var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
+        tmp = C.toPower(2).minus(new Decimal(1).minus(C).times(4).times(new Decimal('' + Math.sin(this.getPrograde().minus(this.pos.r))).toPower(2).times(-1))).sqrt(),
+        den = new Decimal(1).minus(C).times(2),
+        r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
+        r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
+        ap  = new Decimal('' + Math.max(r1, r2)),
+        pe  = new Decimal('' + Math.min(r1, r2))
+
+    return { ap: ap, pe: pe }
   }
 
   return klass
