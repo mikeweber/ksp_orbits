@@ -38,6 +38,8 @@ window.FlightStatus = (function($) {
       .append(this.getPanelFor('ap'))
       .append(this.makeTitle('Pe'))
       .append(this.getPanelFor('pe'))
+      .append(this.makeTitle('Zenith angle'))
+      .append(this.getPanelFor('gamma'))
       .append(this.makeTitle('Prograde'))
       .append(this.getPanelFor('prograde'))
       .append(this.makeTitle('Heading'))
@@ -65,6 +67,7 @@ window.FlightStatus = (function($) {
     var params = ship.calcOrbitalParams()
     this.updateStat('ap', params.ap.round().dividedBy(1000) + 'km')
     this.updateStat('pe', params.pe.round().dividedBy(1000) + 'km')
+    this.updateStat('gamma', '' + window.Helper.radianToDegrees(ship.pos.phi.minus(ship.getPrograde())).round())
 
     this.last_run = now
   }

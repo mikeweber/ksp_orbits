@@ -502,7 +502,11 @@ window.Ship = (function() {
   klass.prototype.calcOrbitalParams = function() {
     // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
     var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
-        tmp = C.toPower(2).minus(new Decimal(1).minus(C).times(4).times(new Decimal('' + Math.sin(this.getPrograde().minus(this.pos.r))).toPower(2).times(-1))).sqrt(),
+        tmp = C.toPower(2).minus(
+          new Decimal(1).minus(C).times(4).times(
+            new Decimal('' + Math.sin(this.getPrograde().minus(this.pos.phi))).toPower(2).times(-1)
+          )
+        ).sqrt(),
         den = new Decimal(1).minus(C).times(2),
         r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
         r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
