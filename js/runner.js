@@ -131,7 +131,7 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
 
 $('#status').append(stat.getPanel())
 plan.addObserver(stat)
-plan.addManeuver(function(t, ship) { s.track(ship); return true }, 0, false, 0)
+plan.addManeuver(function(t, ship) { s.track(ship); return true }, 0, false, 1)
 plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
   for (var i = observers.length; i--; ) {
     observers[i].setMessage('Decelerating on approach to Duna')
@@ -169,6 +169,7 @@ plan.addSOIChangeManeuver(s.getPlanet('Duna'), 0, false, 0).done(function(observ
     })
   })
 })
+
 s.track(kerbin)
 renderer.zoomTo(200)
 s.registerShipLaunch(plan)
