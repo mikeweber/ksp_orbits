@@ -508,12 +508,21 @@ window.Ship = (function() {
     return this.observers
   }
 
+  klass.prototype.getEccentricity = function() {
+    // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
+    var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
+        p2 = new Decimal('' + Math.sin(this.getGamma())).toPower(2),
+        p3 = new Decimal('' + Math.cos(this.getGamma())).toPower(2)
+
+    return p1.times(p2).plus(p3).sqrt()
+  }
+
   klass.prototype.calcOrbitalParams = function() {
     // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
     var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
         tmp = C.toPower(2).minus(
           new Decimal(1).minus(C).times(4).times(
-            new Decimal('' + Math.sin(this.getPrograde().minus(this.pos.phi))).toPower(2).times(-1)
+            new Decimal('' + Math.sin(this.getGamma())).toPower(2).times(-1)
           )
         ).sqrt(),
         den = new Decimal(1).minus(C).times(2),
@@ -523,6 +532,10 @@ window.Ship = (function() {
         pe  = new Decimal('' + Math.min(r1, r2))
 
     return { ap: ap, pe: pe }
+  }
+
+  klass.prototype.getGamma = function() {
+    return this.getPrograde().minus(this.pos.phi)
   }
 
   return klass
@@ -735,13 +748,13 @@ window.Simulator = (function() {
 
   klass.prototype.faster = function() {
     if (this.tick_size < 1000000) {
-      this.tick_size *= 10
+      this.tick_size *= 2
     }
   }
 
   klass.prototype.slower = function() {
     if (this.tick_size > 1) {
-      this.tick_size *= 0.1
+      this.tick_size *= 0.5
     }
   }
 

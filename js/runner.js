@@ -32,12 +32,14 @@ window.FlightStatus = (function($) {
       .append(this.getPanelFor('throttle'))
       .append(this.makeTitle('Altitude'))
       .append(this.getPanelFor('r'))
-      .append(this.makeTitle('Anomoly'))
+      .append(this.makeTitle('Phi'))
       .append(this.getPanelFor('phi'))
       .append(this.makeTitle('Ap'))
       .append(this.getPanelFor('ap'))
       .append(this.makeTitle('Pe'))
       .append(this.getPanelFor('pe'))
+      .append(this.makeTitle('Eccentricity'))
+      .append(this.getPanelFor('ecc'))
       .append(this.makeTitle('Zenith angle'))
       .append(this.getPanelFor('gamma'))
       .append(this.makeTitle('Prograde'))
@@ -68,6 +70,7 @@ window.FlightStatus = (function($) {
     this.updateStat('ap', params.ap.round().dividedBy(1000) + 'km')
     this.updateStat('pe', params.pe.round().dividedBy(1000) + 'km')
     this.updateStat('gamma', '' + window.Helper.radianToDegrees(ship.pos.phi.minus(ship.getPrograde())).round())
+    this.updateStat('ecc', window.Helper.roundTo(ship.getEccentricity(), 4))
 
     this.last_run = now
   }
@@ -154,18 +157,31 @@ plan.addSOIChangeManeuver(s.getPlanet('Sun'), Math.PI * 0.727, true, 1).done(fun
 })
 plan.addSOIChangeManeuver(s.getPlanet('Duna'), 0, false, 0).done(function(observers, ship, t) {
   for (var i = observers.length; i--; ) {
-    observers[i].setMessage('Near destination; waiting for circularization')
+    observers[i].setMessage('Near destination; waiting for capture maneuver')
   }
   var ex_time = t.plus(1200)
   plan.addManeuver(function(t, ship) { return t.greaterThan(ex_time) }, Math.PI, false, 1).done(function(observers) {
     for (var i = observers.length; i--; ) {
-      observers[i].setMessage('Circularizing')
+      observers[i].setMessage('Capturing...')
     }
 
     plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(observers) {
       for (var i = observers.length; i--; ) {
-        observers[i].setMessage('Circularization complete; Shutting down engines')
+        observers[i].setMessage('Capture complete; Shutting down engines')
       }
+
+      var pe = ship.calcOrbitalParams().pe
+      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(observers) {
+        for (var i = observers.length; i--; ) {
+          observers[i].setMessage('Lowering periapsis and circularizing orbit')
+        }
+
+        plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(observers) {
+          for (var i = observers.length; i--; ) {
+            observers[i].setMessage('Orbit circularized')
+          }
+        })
+      })
     })
   })
 })
