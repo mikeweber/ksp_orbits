@@ -1,4 +1,4 @@
-/* global window Decimal Object console */
+/* global window Decimal Object jQuery */
 const YEAR = 9203545,
       WEEK = 201600,
       DAY  = 21600,
@@ -45,7 +45,8 @@ window.CelestialObject = (function() {
   }
 
   klass.calcObjectDistance = function(obj1, obj2) {
-    if (window.Helper.isBlank(obj1) || window.Helper.isBlank(obj2)) return
+    if (window.Helper.isBlank(obj1) || window.Helper.isBlank(obj2)) return null
+
     var coord1 = obj1.getCoordinates(),
         coord2 = obj2.getCoordinates()
     return klass.calcCoordDistance(coord1, coord2)
@@ -66,15 +67,12 @@ window.CelestialObject = (function() {
 
   klass.prototype.step = function(dt, t) {
     var one = new Decimal(1),
-        two = new Decimal(2),
-        n   = this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt(),
-        M   = n.times(t).plus(this.m),
-        e   = this.e,
+        M   = this.getMeanAnomoly(t),
+        e   = this.getEccentricity(),
         S   = new Decimal('' + Math.sin(-M)),
         C   = new Decimal('' + Math.cos(-M)),
         phi = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
-        v   = M.plus(two.times(e).times('' + Math.sin(M))).plus(new Decimal(1.25).times(e.toPower(2)).times(two.times(M))),
-        r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(v)))))
+        r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(this.getVelocity(t))))))
     this.pos = { 'r': r, phi: phi }
     this.dropBreadcrumb(t)
   }
@@ -108,7 +106,9 @@ window.CelestialObject = (function() {
   }
 
   klass.prototype.getCoordinates = function() {
-    return klass.posToCoordinates(this.pos)
+    var coords = this.getLocalCoordinates(),
+        parent = this.parent.getCoordinates()
+    return { x: coords.x.plus(parent.x), y: coords.y.plus(parent.y) }
   }
 
   klass.posToCoordinates = function(pos) {
@@ -216,8 +216,8 @@ window.CelestialObject = (function() {
 window.Planet = (function() {
   'use strict'
 
-  var klass = function Planet(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde, soi) {
-    this.initializeParameters(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde)
+  var klass = function Planet(name, parent, radius, color, mu,    semimajor_axis, pos, e, soi) {
+    this.initializeParameters(name, parent, radius, color, mu, 0, semimajor_axis, pos, e, Math.PI / 2)
     this.soi          = new Decimal(soi)
     this.innerbb      = this.soi.toPower(2).dividedBy(2).sqrt()
     this.trail_length = Math.floor(this.getOrbitalPeriod() / WEEK)
@@ -232,6 +232,20 @@ window.Planet = (function() {
 
   klass.prototype.getPrograde = function() {
     return this.pos.phi.minus('' + Math.PI / 2)
+  }
+
+  klass.prototype.getVelocity = function(t) {
+    var M = this.getMeanAnomoly(t),
+        e = this.getEccentricity()
+    return M.plus(e.times(2).times('' + Math.sin(M))).plus(e.toPower(2).times(1.25)).times(M.times(2))
+  }
+
+  klass.prototype.getEccentricity = function() {
+    return this.e
+  }
+
+  klass.prototype.getMeanAnomoly = function(t) {
+    return this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt().times(t).plus(this.m)
   }
 
   klass.prototype.isInSOI = function(ship) {
@@ -257,6 +271,7 @@ window.Sun = (function() {
 
   var klass = function Sun(mu, radius) {
     this.initializeParameters('Sun', null, radius, '#FFFF00', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
+    this.coordinates = { x: new Decimal(0), y: new Decimal(0) }
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
@@ -268,6 +283,7 @@ window.Sun = (function() {
   klass.prototype.getOrbitalPeriod = function() {}
   klass.prototype.isInSOI = function() { return true }
   klass.prototype.getParent = function() { return this }
+  klass.prototype.getCoordinates = function() { return this.coordinates }
 
   return klass
 })()
@@ -311,27 +327,27 @@ window.Ship = (function() {
   }
 
   klass.prototype.step = function(dt, t) {
-    var gravity    = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
-        g_x        = gravity.times(this.getGravityWellX()),
-        g_y        = gravity.times(this.getGravityWellY()),
-        a_x        = this.getAcceleration().times(this.getHeadingX()),
-        a_y        = this.getAcceleration().times(this.getHeadingY()),
-        accel_x    = a_x.plus(g_x).times(dt),
-        accel_y    = a_y.plus(g_y).times(dt),
-        vel_x      = this.v.times(this.getProgradeX()),
-        vel_y      = this.v.times(this.getProgradeY()),
-        old_coords = this.getLocalCoordinates(),
-        mid_x      = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
-        mid_y      = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
-        mid_coords = { x: mid_x, y: mid_y },
-        mid_phi    = new Decimal('' + Math.atan2(mid_coords.y, mid_coords.x)),
-        g_x        = gravity.times('' + Math.cos(mid_phi)),
-        g_y        = gravity.times('' + Math.sin(mid_phi)),
-        accel_x    = a_x.plus(g_x).times(dt),
-        accel_y    = a_y.plus(g_y).times(dt),
-        new_x      = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))).plus(mid_x).dividedBy(2),
-        new_y      = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))).plus(mid_y).dividedBy(2),
-        new_coords = { x: new_x, y: new_y }
+    var gravity     = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
+        g_x         = gravity.times(this.getGravityWellX()),
+        g_y         = gravity.times(this.getGravityWellY()),
+        a_x         = this.getAcceleration().times(this.getHeadingX()),
+        a_y         = this.getAcceleration().times(this.getHeadingY()),
+        accel_x     = a_x.plus(g_x).times(dt),
+        accel_y     = a_y.plus(g_y).times(dt),
+        vel_x       = this.v.times(this.getProgradeX()),
+        vel_y       = this.v.times(this.getProgradeY()),
+        old_coords  = this.getLocalCoordinates(),
+        mid_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
+        mid_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
+        mid_coords  = { x: mid_x, y: mid_y },
+        mid_phi     = new Decimal('' + Math.atan2(mid_coords.y, mid_coords.x)),
+        new_g_x     = gravity.times('' + Math.cos(mid_phi)),
+        new_g_y     = gravity.times('' + Math.sin(mid_phi)),
+        new_accel_x = a_x.plus(new_g_x).times(dt),
+        new_accel_y = a_y.plus(new_g_y).times(dt),
+        new_x       = old_coords.x.plus(vel_x.times(dt).plus(new_accel_x.times(dt).dividedBy(2))).plus(mid_x).dividedBy(2),
+        new_y       = old_coords.y.plus(vel_y.times(dt).plus(new_accel_y.times(dt).dividedBy(2))).plus(mid_y).dividedBy(2),
+        new_coords  = { x: new_x, y: new_y }
 
     this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y))
     this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
@@ -443,25 +459,7 @@ window.Ship = (function() {
       var bodies = this.parent.getBodiesInSOI()
       for (var i = bodies.length; i--; ) {
         if (bodies[i].isInSOI(this)) {
-          var new_parent = bodies[i],
-              old_coords = this.getLocalCoordinates(),
-              p_coords   = new_parent.getLocalCoordinates(),
-              new_coords = { x: old_coords.x.minus(p_coords.x), y: old_coords.y.minus(p_coords.y) },
-              p_vel      = new_parent.getVelocity(),
-              s_vel      = this.getVelocity(),
-              p_pro      = new_parent.getPrograde(),
-              s_pro      = this.getPrograde(),
-              p_vel_x    = p_vel.times('' + Math.cos(p_pro)),
-              p_vel_y    = p_vel.times('' + Math.sin(p_pro)),
-              s_vel_x    = s_vel.times('' + Math.cos(s_pro)),
-              s_vel_y    = s_vel.times('' + Math.sin(s_pro)),
-              vel_x      = s_vel_x.minus(p_vel_x),
-              vel_y      = s_vel_y.minus(p_vel_y)
-
-          this.parent = new_parent
-          this.setPosition(new_coords)
-          this.alterPrograde(vel_x, vel_y)
-          this.alterVelocity(vel_x, vel_y)
+          switchToParentSOI(this, bodies[i], t)
           this.just_checked_soi = true
           this.alertSOIChange(this.parent, t)
           return true
@@ -469,19 +467,40 @@ window.Ship = (function() {
       }
       return false
     } else {
-      switchSOI(this, this.parent.getParent())
+      switchToChildSOI(this, this.parent.getParent(), t)
       this.just_checked_soi = true
       this.alertSOIChange(this.parent, t)
       return true
     }
   }
 
-  function switchSOI(ship, new_parent) {
+  function switchToParentSOI(ship, new_parent, t) {
+    var old_coords = ship.getLocalCoordinates(),
+        p_coords   = new_parent.getLocalCoordinates(),
+        new_coords = { x: old_coords.x.minus(p_coords.x), y: old_coords.y.minus(p_coords.y) },
+        p_vel      = new_parent.getVelocity(t),
+        s_vel      = ship.getVelocity(),
+        p_pro      = new_parent.getPrograde(),
+        s_pro      = ship.getPrograde(),
+        p_vel_x    = p_vel.times('' + Math.cos(p_pro)),
+        p_vel_y    = p_vel.times('' + Math.sin(p_pro)),
+        s_vel_x    = s_vel.times('' + Math.cos(s_pro)),
+        s_vel_y    = s_vel.times('' + Math.sin(s_pro)),
+        vel_x      = s_vel_x.minus(p_vel_x),
+        vel_y      = s_vel_y.minus(p_vel_y)
+
+    ship.parent = new_parent
+    ship.setPosition(new_coords)
+    ship.alterPrograde(vel_x, vel_y)
+    ship.alterVelocity(vel_x, vel_y)
+  }
+
+  function switchToChildSOI(ship, new_parent, t) {
     var old_coords = ship.getLocalCoordinates(),
         p_coords   = ship.parent.getLocalCoordinates(),
         new_coords = { x: p_coords.x.plus(old_coords.x), y: p_coords.y.plus(old_coords.y) },
         old_parent = ship.parent,
-        p_vel      = old_parent.getVelocity(),
+        p_vel      = old_parent.getVelocity(t),
         s_vel      = ship.getVelocity(),
         p_pro      = old_parent.getPrograde(),
         s_pro      = ship.getPrograde(),
@@ -555,21 +574,33 @@ window.Renderer = (function() {
     this.initCanvas(canvas)
   }
 
+  klass.prototype.smoothZoomOut = function() {
+    this.zoomTo(this.zoom.minus(this.getSmoothZoomFactor()))
+  }
+
+  klass.prototype.smoothZoomIn = function() {
+    this.zoomTo(this.zoom.plus(this.getSmoothZoomFactor()))
+  }
+
   klass.prototype.zoomOut = function() {
-    this.zoomTo(this.zoom.minus(this.getZoomFactor()))
-    if (this.zoom.lt(1)) this.zoom = new Decimal(1)
+    this.zoomTo(this.zoom.times(0.5))
   }
 
   klass.prototype.zoomIn = function() {
-    this.zoomTo(this.zoom.plus(this.getZoomFactor()))
-    if (this.zoom.gt(35000)) this.zoom = new Decimal(35000)
+    this.zoomTo(this.zoom.times(2))
   }
 
-  klass.prototype.getZoomFactor = function() {
+  klass.prototype.getSmoothZoomFactor = function() {
     return this.zoom.times(0.1)
   }
 
+  klass.prototype.getZoomFactor = function() {
+    return this.zoom.times(0.5)
+  }
+
   klass.prototype.zoomTo = function(zoom) {
+    if (zoom.lt(1))     zoom = new Decimal(1)
+    if (zoom.gt(35000)) zoom = new Decimal(35000)
     this.zoom = new Decimal(zoom)
   }
 
@@ -678,11 +709,12 @@ window.Simulator = (function() {
       var crumbs = 0
       if (now - last_run > 14) {
         renderer.clear()
-        for (var i = this.bodies.length; i--; ) {
+        var i
+        for (i = this.bodies.length; i--; ) {
           crumbs += this.bodies[i].renderBreadcrumbs(renderer)
         }
 
-        for (var i = this.bodies.length; i--; ) {
+        for (i = this.bodies.length; i--; ) {
           this.bodies[i].render(renderer)
         }
         this.showSimDetails(renderer)
@@ -747,18 +779,20 @@ window.Simulator = (function() {
   }
 
   klass.prototype.faster = function() {
-    if (this.tick_size < 1000000) {
+    if (this.tick_size < 10000) {
       this.tick_size *= 2
+      if (this.tick_size > 10000) this.tick_size = 10000
     }
   }
 
   klass.prototype.slower = function() {
     if (this.tick_size > 1) {
       this.tick_size *= 0.5
+      if (this.tick_size < 1) this.tick_size = 1
     }
   }
 
-  klass.prototype.togglePaused = function(renderer) {
+  klass.prototype.togglePaused = function() {
     this.running = !this.running
   }
 
@@ -777,6 +811,8 @@ window.Simulator = (function() {
 })()
 
 window.FlightPlan = (function() {
+  'use strict'
+
   var klass = function FlightPlan(ship_name, timestamp) {
     this.ship_name = ship_name
     this.timestamp = timestamp
@@ -867,6 +903,8 @@ window.FlightPlan = (function() {
 })()
 
 window.Maneuver = (function($) {
+  'use strict'
+
   var klass = function Maneuver(ship, condition, heading, absolute_heading, throttle) {
     this.ship        = ship
     this.condition   = condition
@@ -902,14 +940,24 @@ window.Maneuver = (function($) {
 
 window.Helper = {
   isBlank: function (x) {
-    return (x === null || typeof(x) === 'undefined')
+    'use strict'
+    return (x === null || typeof x === 'undefined')
   },
   shadeRGBColor: function(color, percent) {
+    'use strict'
+
     // from http://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
-    var f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF
-    return "#"+(0x1000000+(Math.round((t-R)*p)+R)*0x10000+(Math.round((t-G)*p)+G)*0x100+(Math.round((t-B)*p)+B)).toString(16).slice(1)
+    var f = parseInt(color.slice(1), 16),
+        t = percent < 0 ? 0 : 255,
+        p = percent < 0 ? percent * -1 : percent,
+        R = f >> 16,
+        G = f >> 8 & 0x00FF,
+        B = f & 0x0000FF
+    return '#' + (0x1000000 + (Math.round((t - R) * p) + R) * 0x10000 + (Math.round((t - G) * p) + G) * 0x100 + (Math.round((t - B) * p) + B)).toString(16).slice(1)
   },
   convertTimeToDate: function(t) {
+    'use strict'
+
     var year   = Math.floor(t / YEAR) + 1,
         day    = Math.floor((t % YEAR) / DAY) + 1,
         hour   = Math.floor(((t % YEAR) % DAY) / HOUR),
@@ -922,16 +970,22 @@ window.Helper = {
     return 'Year ' + year + ', Day ' + day + ' ' + hour + ':' + minute
   },
   radianToDegrees: function(rad) {
+    'use strict'
+
     return rad.times(180).dividedBy('' + Math.PI)
   },
   roundTo: function(num, dec) {
-    if (!num) return
+    'use strict'
+    if (!num) return null
+
     var factor = new Decimal(10).toPower(dec)
     return num.times(factor).round().dividedBy(factor)
   }
 }
 
 window.Debugger = (function($) {
+  'use strict'
+
   var klass = function Debugger(body_name) {
     this.name = body_name
   }
@@ -945,8 +999,8 @@ window.Debugger = (function($) {
         debugData(body.v,       'vel')
         debugData(body.getPrograde().times(180).dividedBy('' + Math.PI), 'prograde')
         debugData(body.getHeading().times(180).dividedBy('' + Math.PI), 'heading')
-        var kd = window.CelestialObject.calcObjectDistance(kerbin, body),
-            dd = window.CelestialObject.calcObjectDistance(duna, body)
+        var kd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Kerbin'), body),
+            dd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Duna'), body)
         debugData(kd, 'kdist')
         debugData(dd, 'ddist')
       }
@@ -955,8 +1009,7 @@ window.Debugger = (function($) {
 
 
   function debugData(data, id) {
-    var el = document.getElementById(id)
-    if (el) { el.innerHTML = data }
+    $('#' + id).html(data)
   }
 
   return klass

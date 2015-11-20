@@ -109,8 +109,10 @@ window.FlightStatus = (function($) {
 })(jQuery)
 
 var sun       = new window.Sun(1.1723328e18, 2.616e8),
-    kerbin    = new window.Planet('Kerbin', sun, 6e5,   '#7777FF', 3.5316e12,    9284.5, 13599840256, { r: 13599840256, phi: -Math.PI }, 0,    Math.PI / 2, 8.4159286e7),
-    duna      = new window.Planet('Duna',   sun, 3.2e5, '#FF3333', 3.0136321e11, 7915,   20726155264, { r: 19669121365, phi: -Math.PI }, 0.05, Math.PI / 2, 4.7921949e7),
+    kerbin    = new window.Planet('Kerbin', sun,    6e5,   '#7777FF', 3.5316e12,    13599840256, { r: 13599840256, phi: -Math.PI },       0,    8.4159286e7),
+    duna      = new window.Planet('Duna',   sun,    3.2e5, '#FF3333', 3.0136321e11, 20726155264, { r: 19669121365, phi: -Math.PI },       0.05, 4.7921949e7),
+    mun       = new window.Planet('Mün',    kerbin, 2.0e5, '#DDDDDD', 6.5138398e10, 1.2e7,       { r: 1.2e7,       phi: -Math.PI * 1.7 }, 0,    2.4295591e6)
+    minmus    = new window.Planet('Minmus', kerbin, 6.0e5, '#A9D0D5', 1.7658000e9,  4.7e7,       { r: 4.7e7,       phi: -Math.PI * 0.9 }, 0,    2.2474284e6)
     plan      = new window.FlightPlan('ship1', 1.8872e7).scheduleLaunchFromPlanet(
       kerbin,
       70000,
@@ -129,7 +131,7 @@ var sun       = new window.Sun(1.1723328e18, 2.616e8),
     canvas    = { width: 500, height: 500 },
     renderer  = new window.Renderer(document.getElementById('flightplan'), world, canvas),
     t         = 1.88719e7,
-    s         = new window.Simulator(t, [sun, duna, kerbin], 100),
+    s         = new window.Simulator(t, [sun, duna, kerbin, mun, minmus], 128),
     stat      = new window.FlightStatus(s, 1, 'Launching from Kerbin')
 
 $('#status').append(stat.getPanel())
@@ -187,14 +189,14 @@ plan.addSOIChangeManeuver(s.getPlanet('Duna'), 0, false, 0).done(function(observ
 })
 
 s.track(kerbin)
-renderer.zoomTo(200)
+renderer.zoomTo(new Decimal(200))
 s.registerShipLaunch(plan)
 s.run(renderer)
 
 ;(function startListeners($, sim, renderer) {
   'use strict'
 
-  $('#pause').on(      'click', function() { sim.togglePaused(renderer) })
+  $('#pause').on(      'click', function() { sim.togglePaused() })
   $('#zoom_in').on(    'click', renderer.zoomIn.bind(renderer))
   $('#zoom_out').on(   'click', renderer.zoomOut.bind(renderer))
   $('#faster').on(     'click', sim.faster.bind(sim))
@@ -226,10 +228,10 @@ s.run(renderer)
     var key = e.keyCode ? e.keyCode : e.which
     if (key === 187) {
       // +
-      renderer.zoomIn()
+      renderer.smoothZoomIn()
     } else if (key === 189) {
       // -
-      renderer.zoomOut()
+      renderer.smoothZoomOut()
     }
   })
 })(jQuery, s, renderer)
