@@ -216,7 +216,8 @@ window.CelestialObject = (function() {
 window.Planet = (function() {
   'use strict'
 
-  var klass = function Planet(name, parent, radius, color, mu,    semimajor_axis, pos, e, soi) {
+  var klass = function Planet(name, parent, radius, color, mu,    semimajor_axis, anomoly, e, soi) {
+    var pos = { r: semimajor_axis, phi: anomoly }
     this.initializeParameters(name, parent, radius, color, mu, 0, semimajor_axis, pos, e, Math.PI / 2)
     this.soi          = new Decimal(soi)
     this.innerbb      = this.soi.toPower(2).dividedBy(2).sqrt()
