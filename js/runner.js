@@ -162,12 +162,12 @@ function addManeuvers(sim) {
       observers[i].setMessage('Decelerating on approach to Duna')
     }
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getPlanet('Duna').getPrograde() - (Math.PI * 0.4), true, 1).done(function(observers) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getPlanet('Duna').getPrograde() - (Math.PI * 0.7), true, 1).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Matching velocity and vector with planet')
     }
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.1e5) }, 0, false, 0).done(function(observers) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Waiting for intercept...')
     }

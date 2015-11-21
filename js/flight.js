@@ -324,7 +324,7 @@ window.Ship = (function() {
     this.max_accel         = new Decimal(0)
     this.maneuvers         = []
     this.observers         = []
-    this.breadcrumb_length = -1
+    this.trail_length      = -1
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
