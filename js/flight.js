@@ -65,18 +65,6 @@ window.CelestialObject = (function() {
     return this.launch_time
   }
 
-  klass.prototype.step = function(dt, t) {
-    var one = new Decimal(1),
-        M   = this.getMeanAnomoly(t),
-        e   = this.getEccentricity(),
-        S   = new Decimal('' + Math.sin(-M)),
-        C   = new Decimal('' + Math.cos(-M)),
-        phi = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
-        r   = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(this.getVelocity(t))))))
-    this.pos = { 'r': r, phi: phi }
-    this.dropBreadcrumb(t)
-  }
-
   klass.prototype.getHeadingX = function() {
     return new Decimal('' + Math.cos(this.getHeading()))
   }
@@ -156,7 +144,7 @@ window.CelestialObject = (function() {
 
     this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
     this.last_breadcrumb = t
-    if (this.breadcrumbs.length >= this.trail_length) {
+    if (this.trail_length >=0 && this.breadcrumbs.length >= this.trail_length) {
       this.breadcrumbs.shift()
     }
   }
@@ -227,6 +215,19 @@ window.Planet = (function() {
   klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
 
+  klass.prototype.step = function(dt, t) {
+    var one  = new Decimal(1),
+        M    = this.getMeanAnomoly(t),
+        e    = this.getEccentricity(),
+        anom = M.plus(e.times(2).times('' + Math.sin(M))).plus(new Decimal(1.25).times(e.toPower(2)).times('' + Math.sin(M.times(2)))),
+        S    = new Decimal('' + Math.sin(-M)),
+        C    = new Decimal('' + Math.cos(-M)),
+        phi  = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
+        r    = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(anom)))))
+    this.pos = { r: r, phi: phi }
+    this.dropBreadcrumb(t)
+  }
+
   klass.prototype.getSemiMajorAxis = function() {
     return this.a
   }
@@ -236,9 +237,11 @@ window.Planet = (function() {
   }
 
   klass.prototype.getVelocity = function(t) {
-    var M = this.getMeanAnomoly(t),
-        e = this.getEccentricity()
-    return M.plus(e.times(2).times('' + Math.sin(M))).plus(e.toPower(2).times(1.25)).times(M.times(2))
+    return this.parent.mu.plus(this.mu).times(new Decimal(2).dividedBy(this.getDistanceFromParent()).minus(new Decimal(1).dividedBy(this.getSemiMajorAxis()))).sqrt()
+  }
+
+  klass.prototype.getDistanceFromParent = function() {
+    return this.pos.r
   }
 
   klass.prototype.getEccentricity = function() {
@@ -295,25 +298,16 @@ window.Ship = (function() {
   var klass = function Ship(  name, parent, radius,               v,    pos,    prograde, heading, absolute_heading) {
     this.initializeParameters(name, parent, radius, '#FFFFFF', 0, v, 0, pos, 0, prograde)
     this.setHeading(heading, absolute_heading)
-    this.breadcrumb_delta = DAY
-    this.nearest_approach = null
-    this.max_accel        = new Decimal(0)
-    this.maneuvers        = []
-    this.observers        = []
+    this.breadcrumb_delta  = DAY
+    this.nearest_approach  = null
+    this.max_accel         = new Decimal(0)
+    this.maneuvers         = []
+    this.observers         = []
+    this.breadcrumb_length = -1
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
   klass.prototype.constructor = klass
-
-  klass.prototype.dropBreadcrumb = function(t) {
-    if (t - this.last_breadcrumb < this.breadcrumb_delta) return
-
-    this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
-    this.last_breadcrumb = t
-    if (this.breadcrumbs.length >= this.trail_length) {
-      this.breadcrumbs.shift()
-    }
-  }
 
   klass.prototype.setManeuvers = function(maneuvers) {
     this.maneuvers = maneuvers

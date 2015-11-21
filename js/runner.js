@@ -156,7 +156,7 @@ function addManeuvers(sim) {
   plan.addObserver(stat)
   jQuery('#status').append(stat.getPanel())
 
-  // plan.addManeuver(function(t, ship) { sim.track(ship); return true }, 0, false, 1)
+  plan.addManeuver(function(t, ship) { sim.track(ship); return true }, 0, false, 1)
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Decelerating on approach to Duna')
