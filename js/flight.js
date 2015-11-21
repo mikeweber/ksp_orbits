@@ -31,6 +31,10 @@ window.CelestialObject = (function() {
     this.soi_observers    = []
   }
 
+  klass.prototype.parentIsSun = function() {
+    return this.parent.name === 'Kerbol'
+  }
+
   klass.prototype.registerChildBody = function(body) {
     this.bodies_in_soi.push(body)
   }
@@ -132,6 +136,19 @@ window.CelestialObject = (function() {
       ctx.lineWidth = 1
       ctx.stroke()
     }
+    this.renderName(renderer, coords)
+  }
+
+  klass.prototype.renderName = function(renderer, coords) {
+    if (renderer.getZoom().lt(700) && !this.parentIsSun()) return
+
+    renderer.context.textAlign = 'center'
+    renderer.context.textBaseline = 'top'
+    renderer.context.shadowColor = '#000000'
+    renderer.context.shadowOffsetX = 1
+    renderer.context.shadowOffsetY = 1
+    renderer.context.shadowBlur = 1
+    renderer.print(this.name, coords.x, coords.y)
   }
 
   klass.prototype.getSOIRadiusForRendering = function(renderer) {
@@ -210,6 +227,9 @@ window.Planet = (function() {
     this.soi          = new Decimal(soi)
     this.innerbb      = this.soi.toPower(2).dividedBy(2).sqrt()
     this.trail_length = Math.floor(this.getOrbitalPeriod() / WEEK)
+    if (this.getOrbitalPeriod().lt(WEEK * 4)) {
+      this.breadcrumb_delta
+    }
   }
 
   klass.prototype = Object.create(window.CelestialObject.prototype)
@@ -274,7 +294,7 @@ window.Sun = (function() {
   'use strict'
 
   var klass = function Sun(mu, radius) {
-    this.initializeParameters('Sun', null, radius, '#FFFF00', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
+    this.initializeParameters('Kerbol', null, radius, '#FFFF00', mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
     this.coordinates = { x: new Decimal(0), y: new Decimal(0) }
   }
 
@@ -288,6 +308,7 @@ window.Sun = (function() {
   klass.prototype.isInSOI = function() { return true }
   klass.prototype.getParent = function() { return this }
   klass.prototype.getCoordinates = function() { return this.coordinates }
+  klass.prototype.parentIsSun = function() { return true }
 
   return klass
 })()
@@ -320,6 +341,8 @@ window.Ship = (function() {
   klass.prototype.getTarget = function() {
     return this.target
   }
+
+  klass.prototype.renderName = function() {}
 
   klass.prototype.step = function(dt, t) {
     var gravity     = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
@@ -593,6 +616,10 @@ window.Renderer = (function() {
     return this.zoom.times(0.5)
   }
 
+  klass.prototype.getZoom = function() {
+    return this.zoom
+  }
+
   klass.prototype.zoomTo = function(zoom) {
     if (zoom.lt(1))     zoom = new Decimal(1)
     if (zoom.gt(35000)) zoom = new Decimal(35000)
@@ -792,6 +819,8 @@ window.Simulator = (function() {
   }
 
   klass.prototype.showSimDetails = function(renderer) {
+    renderer.context.textAlign = 'start'
+    renderer.context.textBaseline = 'bottom'
     renderer.print('Zoom: ' + renderer.zoom.round(), 5, 10)
     renderer.print('Warp: ' + this.tick_size, 5, 20)
     renderer.print(this.getKerbalDate(), 5, 30)

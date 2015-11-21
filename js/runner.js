@@ -162,50 +162,43 @@ function addManeuvers(sim) {
       observers[i].setMessage('Decelerating on approach to Duna')
     }
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getPlanet('Duna').getPrograde() - (Math.PI * 0.66), true, 1).done(function(observers) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getPlanet('Duna').getPrograde() - (Math.PI * 0.4), true, 1).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Matching velocity and vector with planet')
     }
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.13e5) }, 0, false, 0).done(function(observers) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.1e5) }, 0, false, 0).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Waiting for intercept...')
     }
   })
-  plan.addSOIChangeManeuver(sim.getPlanet('Sun'), Math.PI * 0.727, true, 1).done(function(observers) {
+  plan.addSOIChangeManeuver(sim.getPlanet('Kerbol'), Math.PI * 0.727, true, 1).done(function(observers) {
     for (var i = observers.length; i--; ) {
       observers[i].setMessage('Left Kerbin SOI; setting course')
     }
   })
-  plan.addSOIChangeManeuver(sim.getPlanet('Duna'), 0, false, 0).done(function(observers, ship, t) {
-    var i
+  plan.addSOIChangeManeuver(sim.getPlanet('Duna'), Math.PI, false, 1).done(function(observers, ship, t) {
+    var i, soi_change_time = t
     for (i = observers.length; i--; ) {
-      observers[i].setMessage('Near destination; waiting for capture maneuver')
+      observers[i].setMessage('Near destination; attempting to get captured')
     }
-    var ex_time = t.plus(1200)
-    plan.addManeuver(function(t) { return t.greaterThan(ex_time) }, Math.PI, false, 1).done(function(observers) {
+
+    plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(observers) {
 
       for (i = observers.length; i--; ) {
-        observers[i].setMessage('Capturing...')
+        observers[i].setMessage('Capture complete; Shutting down engines')
       }
 
-      plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(observers) {
-
+      var pe = ship.calcOrbitalParams().pe
+      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(observers) {
         for (i = observers.length; i--; ) {
-          observers[i].setMessage('Capture complete; Shutting down engines')
+          observers[i].setMessage('Lowering periapsis and circularizing orbit')
         }
 
-        var pe = ship.calcOrbitalParams().pe
-        plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(observers) {
+        plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(observers) {
           for (i = observers.length; i--; ) {
-            observers[i].setMessage('Lowering periapsis and circularizing orbit')
+            observers[i].setMessage('Orbit circularized')
           }
-
-          plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(observers) {
-            for (i = observers.length; i--; ) {
-              observers[i].setMessage('Orbit circularized')
-            }
-          })
         })
       })
     })
