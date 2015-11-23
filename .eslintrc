@@ -1,6 +1,8 @@
-{
+module.exports = {
   'rules': {
+    'indent':               [2, 2],
     'semi':                 [2, 'never'],
+    'linebreak-style':      [2, 'unix'],
     'quotes':               [2, 'single'],
     'no-multi-spaces':      [1],
     'key-spacing':          [0],
@@ -9,6 +11,10 @@
     'no-use-before-define': [0],
     'new-cap':              [2, { 'capIsNewExceptions': ['Deferred'] }],
     'no-unused-vars':       [2, { 'args': 'after-used' }]
+  },
+  'env': {
+    'es6': true,
+    'browser': true
   }
 }
 
