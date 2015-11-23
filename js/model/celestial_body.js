@@ -192,6 +192,8 @@
       return this.bodies_in_soi
     }
 
+    makeObservable.bind(this)(klass)
+
     return klass
   })()
 })(FlightPlanner.Model, FlightPlanner.Helper.Helper)

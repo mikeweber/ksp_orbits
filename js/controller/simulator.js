@@ -1,6 +1,6 @@
 /* global FlightPlanner Decimal Object */
 
-(function(namespace, helpers) {
+(function(namespace, helpers, makeObservable) {
   'use strict'
 
   namespace.Simulator = (function() {
@@ -49,12 +49,11 @@
 
       (function render() {
         now = new Date()
-        this.stepBodies()
+        this.execute('stepBodies')
         focusOnBody(renderer, this.tracking)
-        this.launchVehicles()
-        this.performManeuvers()
-        this.debug()
-        this.tick()
+        this.execute('performManeuvers')
+        this.execute('debug')
+        this.execute('tick')
 
         var crumbs = 0
         if (now - last_run > 14) {
@@ -78,7 +77,7 @@
       if (!this.running) return
 
       for (var i = this.bodies.length; i--; ) {
-        this.bodies[i].step(this.tick_size, this.t)
+        this.bodies[i].execute('step', this.tick_size, this.t)
       }
     }
 
@@ -86,22 +85,6 @@
       if (!body) return
 
       renderer.offset = body.getCoordinates()
-    }
-
-    klass.prototype.registerLaunch = function(launch) {
-      this.launches.push(launch)
-    }
-
-    klass.prototype.launchVehicles = function() {
-      if (!this.running) return
-
-      for (var i = 0; i < this.launches.length; i++) {
-        var launch = this.launches[i]
-        if (launch.ready(this.t)) {
-          this.bodies.push(launch.activate(this.t))
-          this.launches.splice(i, 1)
-        }
-      }
     }
 
     klass.prototype.performManeuvers = function() {
@@ -164,6 +147,8 @@
       return helpers.convertTimeToDate(this.t)
     }
 
+    makeObservable(klass)
+
     return klass
   })()
-})(FlightPlanner.Controller, FlightPlanner.Helper.Helper)
+})(FlightPlanner.Controller, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)

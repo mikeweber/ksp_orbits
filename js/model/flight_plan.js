@@ -81,7 +81,7 @@
 
     klass.prototype.initObservers = function() {
       for (var i = this.observers.length; i--; ) {
-        this.ship.addObserver(this.observers[i])
+        this.ship.observe('after:step', this.observers[i])
       }
     }
 

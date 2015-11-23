@@ -1,6 +1,6 @@
 /* global FlightPlanner Decimal Object jQuery */
 
-(function(namespace, helpers) {
+(function(namespace, helpers, makeObservable) {
   'use strict'
 
   namespace.Ship = (function() {
@@ -11,7 +11,6 @@
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
       this.maneuvers         = []
-      this.observers         = []
       this.trail_length      = -1
     }
 
@@ -147,10 +146,6 @@
       this.plan = flight_plan
     }
 
-    klass.prototype.addObserver = function(observer) {
-      this.observers.push(observer)
-    }
-
     klass.prototype.updateObservers = function(t) {
       for (var i = this.getObservers().length; i--; ) {
         this.getObservers()[i].updateStatus(t, this)
@@ -265,4 +260,4 @@
 
     return klass
   })()
-})(FlightPlanner.Model, FlightPlanner.Helper.Helper)
+})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)

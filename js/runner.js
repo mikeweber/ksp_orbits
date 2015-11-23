@@ -1,11 +1,15 @@
 /* globals FlightPlanner Decimal jQuery */
 
-var player = initUniverse()
-player.zoomTo(new Decimal(200))
-player.run()
-player.track('Ike')
-startListeners(jQuery, player)
-addManeuvers(player.sim, jQuery)
+function run() {
+  var player = initUniverse()
+  player.zoomTo(new Decimal(200))
+  player.run()
+  player.track('Ike')
+  addListeners(jQuery, player)
+  addManeuvers(player.sim, jQuery)
+}
+
+run()
 
 function initUniverse() {
   'use strict'
@@ -123,7 +127,7 @@ function addManeuvers(sim, $) {
   sim.registerShipLaunch(plan)
 }
 
-function startListeners($, player) {
+function addListeners($, player) {
   'use strict'
 
   $('#pause').on(      'click', player.togglePaused)
