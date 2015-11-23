@@ -1,4 +1,4 @@
-/* global FlightPlanner Decimal Object jQuery */
+/* global FlightPlanner Decimal Object */
 
 (function(namespace){
   'use strict'
@@ -12,14 +12,14 @@
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
     klass.prototype.constructor = klass
 
-    klass.prototype.step = function() {}
-    klass.prototype.dropBreadcrumb = function() {}
+    klass.prototype.step              = function() {}
+    klass.prototype.dropBreadcrumb    = function() {}
     klass.prototype.renderBreadcrumbs = function() {}
-    klass.prototype.getOrbitalPeriod = function() {}
-    klass.prototype.isInSOI = function() { return true }
-    klass.prototype.getParent = function() { return this }
-    klass.prototype.getCoordinates = function() { return this.coordinates }
-    klass.prototype.parentIsSun = function() { return true }
+    klass.prototype.getOrbitalPeriod  = function() {}
+    klass.prototype.isInSOI           = function() { return true }
+    klass.prototype.getParent         = function() { return this }
+    klass.prototype.getCoordinates    = function() { return this.coordinates }
+    klass.prototype.parentIsSun       = function() { return true }
 
     return klass
   })()

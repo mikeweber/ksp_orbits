@@ -1,4 +1,4 @@
-/* global FlightPlanner */
+/* global FlightPlanner jQuery */
 (function(namespace, helpers, $) {
   'use strict'
 

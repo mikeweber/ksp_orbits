@@ -5,7 +5,7 @@ player.zoomTo(new Decimal(200))
 player.run()
 player.track('Ike')
 startListeners(jQuery, player)
-addManeuvers(player.sim)
+addManeuvers(player.sim, jQuery)
 
 function initUniverse() {
   'use strict'
@@ -51,7 +51,7 @@ function initUniverse() {
   return runner
 }
 
-function addManeuvers(sim) {
+function addManeuvers(sim, $) {
   'use strict'
 
   var plan = new FlightPlanner.Model.FlightPlan('ship1', 1.8872e7).scheduleLaunchFromPlanet(
@@ -70,7 +70,7 @@ function addManeuvers(sim) {
 
   var stat = new FlightPlanner.View.FlightStatus(sim, 1, 'Launching from Kerbin')
   plan.addObserver(stat)
-  jQuery('#status').append(stat.getPanel())
+  $('#status').append(stat.getPanel())
 
   plan.addManeuver(function(t, ship) { sim.track(ship); return true }, 0, false, 1)
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {

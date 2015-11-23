@@ -1,4 +1,4 @@
-/* global FlightPlanner Decimal Object */
+/* global FlightPlanner Decimal */
 
 (function(namespace, helpers) {
   'use strict'

@@ -33,5 +33,3 @@
     return klass
   })()
 })(FlightPlanner.Helper, jQuery)
-
-
