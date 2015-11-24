@@ -1,6 +1,6 @@
 /* global Decimal FlightPlanner */
 
-(function(namespace, helpers) {
+(function(namespace, helpers, makeObservable) {
   'use strict'
 
   namespace.CelestialBody = (function() {
@@ -178,12 +178,6 @@
       this.soi_observers.push(observer)
     }
 
-    klass.prototype.runManeuvers = function(t) {
-      if (this.plan) {
-        this.plan.activateManeuvers(t)
-      }
-    }
-
     klass.prototype.getParent = function() {
       return this.parent
     }
@@ -196,4 +190,4 @@
 
     return klass
   })()
-})(FlightPlanner.Model, FlightPlanner.Helper.Helper)
+})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)

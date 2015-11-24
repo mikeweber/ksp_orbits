@@ -18,7 +18,7 @@
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
     klass.prototype.constructor = klass
 
-    klass.prototype.step = function(dt, t) {
+    klass.prototype.step = function(t, dt) {
       var one  = new Decimal(1),
           M    = this.getMeanAnomoly(t),
           e    = this.getEccentricity(),

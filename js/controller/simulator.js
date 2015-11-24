@@ -10,14 +10,17 @@
       this.tick_size = tick_size
       this.running   = false
       this.debugger  = debug
-      this.launches  = []
     }
 
     klass.prototype.track = function(celestial_object) {
       this.tracking = celestial_object
     }
 
-    klass.prototype.getPlanet = function(name) {
+    klass.prototype.addBody = function(body) {
+      this.bodies.push(body)
+    }
+
+    klass.prototype.getBody = function(name) {
       for (var i = this.bodies.length; i--; ) {
         if (this.bodies[i].name === name) return this.bodies[i]
       }
@@ -49,9 +52,8 @@
 
       (function render() {
         now = new Date()
-        this.execute('stepBodies')
+        this.execute('stepBodies', this.t, this.tick_size)
         focusOnBody(renderer, this.tracking)
-        this.execute('performManeuvers')
         this.execute('debug')
         this.execute('tick')
 
@@ -77,7 +79,7 @@
       if (!this.running) return
 
       for (var i = this.bodies.length; i--; ) {
-        this.bodies[i].execute('step', this.tick_size, this.t)
+        this.bodies[i].execute('step', this.t, this.tick_size, this.bodies[i])
       }
     }
 
@@ -85,14 +87,6 @@
       if (!body) return
 
       renderer.offset = body.getCoordinates()
-    }
-
-    klass.prototype.performManeuvers = function() {
-      if (!this.running) return
-
-      for (var i = this.bodies.length; i--; ) {
-        this.bodies[i].runManeuvers(this.t)
-      }
     }
 
     klass.prototype.debug = function() {
@@ -104,11 +98,6 @@
     klass.prototype.tick = function() {
       if (!this.running) return
       this.t = this.t.plus(this.tick_size)
-    }
-
-    klass.prototype.registerShipLaunch = function(launch_data) {
-      this.launches.push(launch_data)
-      this.launches = this.launches.sort()
     }
 
     klass.prototype.faster = function() {

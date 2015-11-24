@@ -1,15 +1,11 @@
 /* globals FlightPlanner Decimal jQuery */
 
-function run() {
-  var player = initUniverse()
-  player.zoomTo(new Decimal(200))
-  player.run()
-  player.track('Ike')
-  addListeners(jQuery, player)
-  addManeuvers(player.sim, jQuery)
-}
-
-run()
+var player = initUniverse()
+player.zoomTo(new Decimal(200))
+player.run()
+player.track('Ike')
+addListeners(jQuery, player)
+addManeuvers(player.sim, jQuery)
 
 function initUniverse() {
   'use strict'
@@ -25,14 +21,14 @@ function initUniverse() {
       canvas    = { width: 500, height: 500 },
       renderer  = new FlightPlanner.View.Renderer($('#flightplan')[0], world, canvas),
       t         = 1.88719e7,
-      sim       = new FlightPlanner.Controller.Simulator(t, [sun, duna, kerbin, mun, minmus, ike], 128)
+      sim       = new FlightPlanner.Controller.Simulator(t, [ike, duna, minmus, mun, kerbin, sun], 128)
 
   var runner = {
     sim:      sim,
     renderer: renderer,
     run:      function() { sim.run(renderer) },
     track:    function(obj_name) {
-      var obj = sim.getPlanet(obj_name)
+      var obj = sim.getBody(obj_name)
       if (!obj) {
         console.error('Could not find "' + obj_name + '"')
         return
@@ -58,73 +54,52 @@ function initUniverse() {
 function addManeuvers(sim, $) {
   'use strict'
 
-  var plan = new FlightPlanner.Model.FlightPlan('ship1', 1.8872e7).scheduleLaunchFromPlanet(
-    sim.getPlanet('Kerbin'),
+  var stat = new FlightPlanner.View.FlightStatus(sim, 1, 'Launching from Kerbin')
+  $('#status').append(stat.getPanel())
+
+  var plan = new FlightPlanner.Model.FlightPlan(sim, 'Duna Mission', stat, 1.8872e7).scheduleLaunchFromPlanet(
+    sim.getBody('Kerbin'),
     70000,
     {
-      throttle:         0,
+      throttle:         1,
       max_accel:        0.2,
       fuel_consumption: 0.19,
       initial_angle:    -Math.PI,
       heading:          0,
       absolute_heading: false,
-      target:           sim.getPlanet('Duna')
+      target:           sim.getBody('Duna')
     }
   )
 
-  var stat = new FlightPlanner.View.FlightStatus(sim, 1, 'Launching from Kerbin')
-  plan.addObserver(stat)
-  $('#status').append(stat.getPanel())
-
-  plan.addManeuver(function(t, ship) { sim.track(ship); return true }, 0, false, 1)
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(observers) {
-    for (var i = observers.length; i--; ) {
-      observers[i].setMessage('Decelerating on approach to Duna')
-    }
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(status_tracker) {
+    status_tracker.setMessage('Decelerating on approach to Duna')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getPlanet('Duna').getPrograde() - (Math.PI * 0.7), true, 1).done(function(observers) {
-    for (var i = observers.length; i--; ) {
-      observers[i].setMessage('Matching velocity and vector with planet')
-    }
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getBody('Duna').getPrograde() - (Math.PI * 0.7), true, 1).done(function(status_tracker) {
+    status_tracker.setMessage('Matching velocity and vector with planet')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(observers) {
-    for (var i = observers.length; i--; ) {
-      observers[i].setMessage('Waiting for intercept...')
-    }
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(status_tracker) {
+    status_tracker.setMessage('Waiting for intercept...')
   })
-  plan.addSOIChangeManeuver(sim.getPlanet('Kerbol'), Math.PI * 0.727, true, 1).done(function(observers) {
-    for (var i = observers.length; i--; ) {
-      observers[i].setMessage('Left Kerbin SOI; setting course')
-    }
+  plan.addSOIChangeManeuver(sim.getBody('Kerbol'), Math.PI * 0.727, true, 1).done(function(status_tracker) {
+    status_tracker.setMessage('Left Kerbin SOI; setting course')
   })
-  plan.addSOIChangeManeuver(sim.getPlanet('Duna'), Math.PI, false, 1).done(function(observers, ship, t) {
+  plan.addSOIChangeManeuver(sim.getBody('Duna'), Math.PI, false, 1).done(function(status_tracker, ship, t) {
     var i, soi_change_time = t
-    for (i = observers.length; i--; ) {
-      observers[i].setMessage('Near destination; attempting to get captured')
-    }
+    status_tracker.setMessage('Near destination; attempting to get captured')
 
-    plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(observers) {
-
-      for (i = observers.length; i--; ) {
-        observers[i].setMessage('Capture complete; Shutting down engines')
-      }
+    plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(status_tracker) {
+      status_tracker.setMessage('Capture complete; Shutting down engines')
 
       var pe = ship.calcOrbitalParams().pe
-      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(observers) {
-        for (i = observers.length; i--; ) {
-          observers[i].setMessage('Lowering periapsis and circularizing orbit')
-        }
+      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+        status_tracker.setMessage('Lowering periapsis and circularizing orbit')
 
-        plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(observers) {
-          for (i = observers.length; i--; ) {
-            observers[i].setMessage('Orbit circularized')
-          }
+        plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker) {
+          status_tracker.setMessage('Orbit circularized')
         })
       })
     })
   })
-
-  sim.registerShipLaunch(plan)
 }
 
 function addListeners($, player) {

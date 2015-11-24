@@ -10,16 +10,11 @@
       this.breadcrumb_delta  = DAY
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
-      this.maneuvers         = []
       this.trail_length      = -1
     }
 
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
     klass.prototype.constructor = klass
-
-    klass.prototype.setManeuvers = function(maneuvers) {
-      this.maneuvers = maneuvers
-    }
 
     klass.prototype.setTarget = function(target) {
       this.target = target
@@ -31,7 +26,7 @@
 
     klass.prototype.renderName = function() {}
 
-    klass.prototype.step = function(dt, t) {
+    klass.prototype.step = function(t, dt) {
       var gravity     = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
           g_x         = gravity.times(this.getGravityWellX()),
           g_y         = gravity.times(this.getGravityWellY()),
@@ -58,7 +53,6 @@
       this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
       this.setPosition(new_coords)
       this.dropBreadcrumb(t)
-      this.updateObservers(t)
       this.detectSOIChange(t)
     }
 
@@ -146,33 +140,28 @@
       this.plan = flight_plan
     }
 
-    klass.prototype.updateObservers = function(t) {
-      for (var i = this.getObservers().length; i--; ) {
-        this.getObservers()[i].updateStatus(t, this)
-      }
-    }
-
     klass.prototype.detectSOIChange = function(t) {
-      if (this.just_checked_soi) {
-        this.just_checked_soi = false
-      }
+      if (this.just_checked_soi) this.just_checked_soi = false
+
+      var new_parent, fn
       if (this.parent.isInSOI(this)) {
         var bodies = this.parent.getBodiesInSOI()
         for (var i = bodies.length; i--; ) {
           if (bodies[i].isInSOI(this)) {
-            switchToParentSOI(this, bodies[i], t)
-            this.just_checked_soi = true
-            this.alertSOIChange(this.parent, t)
-            return true
+            fn = switchToParentSOI
+            new_parent = bodies[i]
           }
         }
-        return false
       } else {
-        switchToChildSOI(this, this.parent.getParent(), t)
-        this.just_checked_soi = true
-        this.alertSOIChange(this.parent, t)
-        return true
+        fn = switchToChildSOI
+        new_parent = this.parent.getParent()
       }
+      if (!new_parent) return false
+
+      this.notifyObservers('before:soiChange', this, new_parent, t)
+      fn(this, new_parent, t)
+      this.notifyObservers('after:soiChange', this, new_parent, t)
+      return true
     }
 
     function switchToParentSOI(ship, new_parent, t) {
@@ -222,10 +211,6 @@
       for (var i = this.soi_observers.length; i--; ) {
         if (this.soi_observers[i](new_parent, t)) this.soi_observers.splice(i, 1)
       }
-    }
-
-    klass.prototype.getObservers = function() {
-      return this.observers
     }
 
     klass.prototype.getEccentricity = function() {
