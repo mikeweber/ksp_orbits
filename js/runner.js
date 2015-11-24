@@ -74,7 +74,7 @@ function addManeuvers(sim, $) {
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(status_tracker) {
     status_tracker.setMessage('Decelerating on approach to Duna')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getBody('Duna').getPrograde() - (Math.PI * 0.7), true, 1).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.4)), true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Matching velocity and vector with planet')
   })
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(status_tracker) {
@@ -91,11 +91,12 @@ function addManeuvers(sim, $) {
       status_tracker.setMessage('Capture complete; Shutting down engines')
 
       var pe = ship.calcOrbitalParams().pe
-      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(10).lt(pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+      plan.addManeuver(function(t, ship) { return ship.pos.r.plus(100).lt(pe) }, -Math.PI, false, 1).done(function(status_tracker) {
         status_tracker.setMessage('Lowering periapsis and circularizing orbit')
 
         plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker) {
           status_tracker.setMessage('Orbit circularized')
+          sim.togglePaused()
         })
       })
     })

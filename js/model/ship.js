@@ -10,7 +10,7 @@
       this.breadcrumb_delta  = DAY
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
-      this.trail_length      = -1
+      this.trail_length      = 200
     }
 
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
