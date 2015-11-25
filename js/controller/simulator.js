@@ -58,7 +58,7 @@
         this.execute('tick')
 
         var crumbs = 0
-        if (now - last_run > 14) {
+        if (now - last_run > 17) {
           renderer.clear()
           var i
           for (i = this.bodies.length; i--; ) {
@@ -69,9 +69,9 @@
             this.bodies[i].render(renderer)
           }
           this.showSimDetails(renderer)
+          last_run = now
         }
-        last_run = now
-        window.requestAnimationFrame(render.bind(this))
+        setTimeout(render.bind(this), 1)
       }.bind(this))()
     }
 
