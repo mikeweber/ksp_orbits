@@ -69,15 +69,7 @@
 
         var crumbs = 0
         if (now - last_run > 17) {
-          renderer.clear()
-          var i
-          for (i = this.bodies.length; i--; ) {
-            crumbs += this.bodies[i].renderBreadcrumbs(renderer)
-          }
-
-          for (i = this.bodies.length; i--; ) {
-            renderer.render(this.bodies[i])
-          }
+          renderer.render()
           this.showSimDetails(renderer)
           last_run = now
         }

@@ -1,5 +1,5 @@
 /* global FlightPlanner */
-(function(namespace) {
+(function(namespace, makeObservable) {
   'use strict'
 
   namespace.FlightPlan = (function() {
@@ -20,9 +20,10 @@
       this.initShip()
       this.watchForCollision()
       var conditional_activate = function(t) {
-        if (this.timestamp.lt(t)) activate(t)
+        if (this.timestamp.lt(t)) this.blastOff(t)
       }.bind(this)
-      var activate = function(t) {
+      this.blastOff = function(t) {
+        this.notifyObservers('before:blastOff', this.ship)
         this.ship.setParent(planet)
         var alt          = planet.getRadius().plus(initial_altitude * 1000),
             v            = planet.mu.times(new Decimal(1).dividedBy(alt)).sqrt(),
@@ -40,6 +41,7 @@
         if (launch_data.target) this.ship.setTarget(launch_data.target)
 
         this.simulator.unobserve('before:stepBodies', conditional_activate)
+        this.notifyObservers('after:blastOff', this.ship)
 
         return this.ship
       }.bind(this)
@@ -51,7 +53,7 @@
 
     klass.prototype.placeShip = function(parent_body, velocity, pos, prograde, heading, launch_data) {
       this.initShip()
-      var activate = function() {
+      this.blastOff = function() {
         this.ship.setMaxAcceleration(launch_data.max_accel)
         this.ship.setThrottle(launch_data.throttle)
         this.initObservers()
@@ -67,7 +69,7 @@
     }
 
     klass.prototype.initShip = function() {
-      this.ship = new namespace.Ship(this.ship_name, null, 50, 0, { r: 0, phi: 0 }, 0, 0)
+      this.ship = new namespace.Ship(this.ship_name, 50, 0, { r: 0, phi: 0 }, 0, 0)
       this.ship.observe('after:step', function(t) {
         executeManeuvers(this.maneuvers, t)
         this.status_tracker.updateStatus.bind(this.status_tracker)(t, this.ship)
@@ -122,6 +124,8 @@
       this.ship_observers.push(observer)
     }
 
+    makeObservable.bind(this)(klass)
+
     return klass
   })()
-})(FlightPlanner.Model)
+})(FlightPlanner.Model, FlightPlanner.Helper.makeObservable)

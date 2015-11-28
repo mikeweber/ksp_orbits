@@ -1,35 +1,60 @@
 (function(namespace) {
   namespace.PlanetRenderer = (function() {
-    var klass = function PlanetRenderer() {}
-
-    klass.prototype.setParentRenderer = function(parent) {
-      this.parent_renderer = parent
-      this.context = this.parent_renderer.getContext()
+    var klass = function PlanetRenderer(canvas, body, color, min_radius) {
+      this.init(canvas)
+      this.body       = body
+      this.color      = color
+      this.min_radius = min_radius
     }
 
-    klass.prototype.render = function(body) {
+    klass.prototype = Object.create(namespace.SceneRenderer.prototype)
+    klass.prototype.constructor = klass
+
+    klass.prototype.render = function() {
       var ctx           = this.context,
-          world_coords  = body.getCoordinates(),
+          world_coords  = this.body.getCoordinates(),
           coords        = this.convertWorldToCanvas(world_coords),
-          planet_radius = body.getRadiusForRendering(this.parent_renderer),
-          soi_radius    = body.getSOIRadiusForRendering(this.parent_renderer)
+          planet_radius = this.getRadiusForRendering(),
+          soi_radius    = this.getSOIRadiusForRendering()
 
-      ctx.beginPath()
-      ctx.arc(coords.x, coords.y, planet_radius, 0, 2 * Math.PI)
-      ctx.fillStyle = body.color
-      ctx.fill()
+      this.renderFilledCircle(coords, planet_radius, { fill_style: this.color })
       if (soi_radius && soi_radius > planet_radius) {
-        ctx.beginPath()
-        ctx.arc(coords.x, coords.y, soi_radius, 0, 2 * Math.PI)
-        ctx.strokeStyle = '#FFFFFF'
-        ctx.lineWidth = 1
-        ctx.stroke()
+        this.renderCircle(coords, soi_radius, { stroke_style: '#FFFFFF', line_width: 1 })
       }
-      body.renderName(this.parent_renderer, coords)
+      this.renderName()
     }
 
-    klass.prototype.convertWorldToCanvas  = function(coords) {
-      return this.parent_renderer.convertWorldToCanvas(coords)
+    klass.prototype.renderName = function() {
+      if (this.getZoom().lt(700) && !this.body.parentIsSun()) return
+
+      var context = this.getContext(),
+          coords  = this.convertWorldToCanvas(this.body.getCoordinates())
+      context.textAlign     = 'center'
+      context.textBaseline  = 'top'
+      context.shadowColor   = '#000000'
+      context.shadowOffsetX = 1
+      context.shadowOffsetY = 1
+      context.shadowBlur    = 1
+      this.print(this.body.name, coords.x, coords.y)
+    }
+
+    klass.prototype.getRadiusForRendering = function() {
+      return Math.max(this.scaleWorldToCanvasX(this.body.radius), this.min_radius)
+    }
+
+    klass.prototype.getSOIRadiusForRendering = function() {
+      if (!this.body.soi) return 0
+      return this.scaleWorldToCanvasX(this.body.soi)
+    }
+
+    klass.prototype.renderBreadcrumbs = function() {
+      var ctx = this.getContext()
+      for (var i = this.body.breadcrumbs.length; i--; ) {
+        var el     = this.body.breadcrumbs[i],
+            coords = this.convertLocalToCanvas(el.parent, el.pos)
+        var color = helpers.shadeRGBColor(this.color, -(this.body.breadcrumbs.length - i) * 0.005)
+        this.renderFilledCircle(coords, 1, { fill_style: color })
+      }
     }
 
     return klass

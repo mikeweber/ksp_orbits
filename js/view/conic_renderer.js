@@ -2,45 +2,31 @@
   'use strict'
 
   namespace.ConicRenderer = (function() {
-    var klass = function ConicRenderer() {}
-
-    klass.prototype.setParentRenderer = function(parent) {
-      this.parent_renderer = parent
-      this.context = this.parent_renderer.getContext()
+    var klass = function ConicRenderer(canvas, body) {
+      this.init(canvas)
+      this.body = body
     }
 
-    klass.prototype.render = function(body) {
-      var e, coords, a
+    klass.prototype = Object.create(namespace.SceneRenderer.prototype)
+    klass.prototype.constructor = klass
 
-      e      = body.getEccentricity()
-      coords = this.convertWorldToCanvas(body.getParentCoordinates())
-      a      = this.scaleWorldToCanvasX(body.getSemiMajorAxis())
+    klass.prototype.render = function() {
+      var e      = this.body.getEccentricity(),
+          coords = this.convertWorldToCanvas(this.body.getParentCoordinates()),
+          a      = this.scaleWorldToCanvasX(this.body.getSemiMajorAxis()),
+          style  = this.getStyle()
+
+      if (!this.body.parentIsSun() && this.getZoom().lt(200)) return
 
       if (e == 0) {
-        this.renderCircle(coords, a)
+        this.renderCircle(coords, a, style)
       } else if (e > 0 && e < 1) {
-        this.renderEllipse(coords, a, e, body.getArgumentOfPeriapsis())
+        this.renderEllipse(coords, a, e, this.body.getArgumentOfPeriapsis(), style)
       }
     }
 
-    klass.prototype.renderEllipse = function(coords, a, e, pe) {
-      this.renderCircle(coords, a)
-    }
-
-    klass.prototype.renderCircle = function(coords, a) {
-      this.context.beginPath()
-      this.context.arc(coords.x, coords.y, a, 0, 2 * Math.PI)
-      this.context.strokeStyle = '#32CD32'
-      this.context.lineWidth = 1
-      this.context.stroke()
-    }
-
-    klass.prototype.convertWorldToCanvas = function(coords) {
-      return this.parent_renderer.convertWorldToCanvas(coords)
-    }
-
-    klass.prototype.scaleWorldToCanvasX = function(point) {
-      return this.parent_renderer.scaleWorldToCanvasX(point)
+    klass.prototype.getStyle = function() {
+      return { stroke_style: '#32CD32', line_width: 1 }
     }
 
     return klass

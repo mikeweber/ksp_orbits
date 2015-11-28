@@ -4,8 +4,8 @@
   'use strict'
 
   namespace.Ship = (function() {
-    var klass = function Ship(  name, parent, radius,               v,    pos,    prograde, heading, absolute_heading) {
-      this.initializeParameters(name, parent, radius, '#FFFFFF', 0, v, 0, pos, 0, prograde)
+    var klass = function Ship(  name, radius,               v,    pos,    prograde, heading, absolute_heading) {
+      this.initializeParameters(name, radius, 0, v, 0, pos, 0, prograde)
       this.setHeading(heading, absolute_heading)
       this.breadcrumb_delta  = DAY
       this.nearest_approach  = null
@@ -135,10 +135,6 @@
 
     klass.prototype.getRadiusForRendering = function() {
       return 2
-    }
-
-    klass.prototype.registerFlightPlan = function(flight_plan) {
-      this.plan = flight_plan
     }
 
     klass.prototype.detectSOIChange = function(t) {

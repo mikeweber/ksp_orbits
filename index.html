@@ -7,7 +7,12 @@
   </head>
   <body>
     <div>
-      <canvas id='flightplan' style='float: left; margin-right: 10px;'></canvas>
+      <div id='canvas_layers' style='float: left; margin-right: 10px; position: relative; width: 500px; height: 500px;'>
+        <canvas id='background' style='position: absolute'></canvas>
+        <canvas id='flightplan' style='position: absolute'></canvas>
+        <canvas id='flightpaths' style='position: absolute'></canvas>
+        <canvas id='ships' style='position: absolute'></canvas>
+      </div>
       <div style='float: left; margin: 10px 0;'>
         <div id='controls'>
           <button id='pause' title='Pause/Run (esc or space)'>=</button>
@@ -33,6 +38,8 @@
     <script type='text/javascript' src='js/model/maneuver.js'></script>
     <script type='text/javascript' src='js/model/flight_plan.js'></script>
     <script type='text/javascript' src='js/view/renderer.js'></script>
+    <script type='text/javascript' src='js/view/scene_renderer.js'></script>
+    <script type='text/javascript' src='js/view/background_renderer.js'></script>
     <script type='text/javascript' src='js/view/conic_renderer.js'></script>
     <script type='text/javascript' src='js/view/planet_renderer.js'></script>
     <script type='text/javascript' src='js/view/flight_status.js'></script>

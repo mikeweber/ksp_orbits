@@ -6,12 +6,9 @@
   namespace.CelestialBody = (function() {
     var klass = function CelestialBody() {}
 
-    klass.prototype.initializeParameters = function(name, parent, radius, color, mu, v, semimajor_axis, pos, e, prograde) {
+    klass.prototype.initializeParameters = function(name, radius, mu, v, semimajor_axis, pos, e, prograde) {
       this.name     = name
-      this.parent   = parent
-      if (this.parent) this.parent.registerChildBody(this)
       this.radius   = new Decimal(radius)
-      this.color    = color
       this.mu       = new Decimal(mu)
       this.v        = new Decimal(v)
       this.a        = new Decimal(semimajor_axis)
@@ -24,7 +21,15 @@
       this.trail_length     = 0
       this.breadcrumbs      = []
       this.bodies_in_soi    = []
-      this.soi_observers    = []
+    }
+
+    klass.prototype.addChild = function(child) {
+      this.registerChildBody(child)
+      child.setParent(this)
+    }
+
+    klass.prototype.setParent = function(parent) {
+      this.parent = parent
     }
 
     klass.prototype.parentIsSun = function() {
@@ -95,23 +100,6 @@
       return new Decimal('' + Math.sin(this.pos.phi))
     }
 
-    klass.prototype.renderName = function(renderer, coords) {
-      if (renderer.getZoom().lt(700) && !this.parentIsSun()) return
-
-      renderer.context.textAlign = 'center'
-      renderer.context.textBaseline = 'top'
-      renderer.context.shadowColor = '#000000'
-      renderer.context.shadowOffsetX = 1
-      renderer.context.shadowOffsetY = 1
-      renderer.context.shadowBlur = 1
-      renderer.print(this.name, coords.x, coords.y)
-    }
-
-    klass.prototype.getSOIRadiusForRendering = function(renderer) {
-      if (!this.soi) return 0
-      return renderer.scaleWorldToCanvasX(this.soi)
-    }
-
     klass.prototype.dropBreadcrumb = function(t) {
       if (t - this.last_breadcrumb < this.breadcrumb_delta) return
 
@@ -120,23 +108,6 @@
       if (this.trail_length >=0 && this.breadcrumbs.length >= this.trail_length) {
         this.breadcrumbs.shift()
       }
-    }
-
-    klass.prototype.renderBreadcrumbs = function(renderer) {
-      var ctx = renderer.context
-      for (var i = this.breadcrumbs.length; i--; ) {
-        var el     = this.breadcrumbs[i],
-            coords = renderer.convertLocalToCanvas(el.parent, el.pos)
-        ctx.beginPath()
-        ctx.arc(coords.x, coords.y, 1, 0, 2 * Math.PI)
-        var color = helpers.shadeRGBColor(this.color, -(this.breadcrumbs.length - i) * 0.005)
-        ctx.fillStyle = color
-        ctx.fill()
-      }
-    }
-
-    klass.prototype.getRadiusForRendering = function(renderer) {
-      return Math.max(renderer.scaleWorldToCanvasX(this.radius), 4)
     }
 
     klass.prototype.getRadius = function() {
@@ -149,12 +120,6 @@
 
     klass.prototype.getMissionTime = function(t) {
       return t.minus(this.launch_time)
-    }
-
-    klass.prototype.registerFlightPlan = function() {}
-
-    klass.prototype.registerSOIChangeObserver = function(observer) {
-      this.soi_observers.push(observer)
     }
 
     klass.prototype.getParent = function() {
@@ -175,6 +140,28 @@
 
     klass.prototype.getParentCoordinates = function() {
       return this.getParent().getCoordinates()
+    }
+
+    klass.prototype.isInSOI = function(ship) {
+      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.soi, this.inner_soi_bb)
+    }
+
+    klass.prototype.isColliding = function(ship) {
+      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.getRadius(), this.radius_inner_bb)
+    }
+
+    function detectIntersection(obj1_coords, obj2_coords, outerbb, innerbb) {
+      var dist_x = obj1_coords.x.minus(obj2_coords.x).abs(),
+          dist_y = obj1_coords.y.minus(obj2_coords.y).abs()
+
+      // Optimized detection;
+      // SOI intersection not possible when dist in x or y axis is larger than the radius
+      if (dist_x.gt(outerbb) || dist_y.gt(outerbb)) return false
+      // If the ship is within the inner bounding box (the largest square that can fit in the SOI),
+      // then it is definitely within the SOI
+      if (dist_x.lt(innerbb) && dist_y.lt(innerbb)) return true
+      // Finally fall through and check the edge case by looking at the distance between the ships
+      return helpers.calcCoordDistance(obj1_coords, obj2_coords).lessThan(outerbb)
     }
 
     makeObservable.bind(this)(klass)
