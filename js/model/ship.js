@@ -54,6 +54,7 @@
       this.setPosition(new_coords)
       this.dropBreadcrumb(t)
       this.detectSOIChange(t)
+      this.detectCollision(t)
     }
 
     klass.prototype.getAcceleration = function() {
@@ -210,6 +211,12 @@
     klass.prototype.alertSOIChange = function(new_parent, t) {
       for (var i = this.soi_observers.length; i--; ) {
         if (this.soi_observers[i](new_parent, t)) this.soi_observers.splice(i, 1)
+      }
+    }
+
+    klass.prototype.detectCollision = function() {
+      if (this.parent.isColliding(this)) {
+        this.notifyObservers('after:collision')
       }
     }
 

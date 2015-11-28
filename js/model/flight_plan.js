@@ -18,6 +18,7 @@
 
     klass.prototype.scheduleLaunchFromPlanet = function(planet, initial_altitude, launch_data) {
       this.initShip()
+      this.watchForCollision()
       var conditional_activate = function(t) {
         if (this.timestamp.lt(t)) activate(t)
       }.bind(this)
@@ -70,6 +71,13 @@
       this.ship.observe('after:step', function(t) {
         executeManeuvers(this.maneuvers, t)
         this.status_tracker.updateStatus.bind(this.status_tracker)(t, this.ship)
+      }.bind(this))
+    }
+
+    klass.prototype.watchForCollision = function() {
+      this.ship.observe('after:collision', function() {
+        this.simulator.togglePaused()
+        this.status_tracker.setMessage('Ship has crashed!')
       }.bind(this))
     }
 

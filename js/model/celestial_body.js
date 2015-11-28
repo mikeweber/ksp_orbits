@@ -21,7 +21,7 @@
       this.prograde = new Decimal('' + prograde)
       this.last_breadcrumb  = 0
       this.breadcrumb_delta = WEEK
-      this.trail_length     = 75
+      this.trail_length     = 0
       this.breadcrumbs      = []
       this.bodies_in_soi    = []
       this.soi_observers    = []
@@ -95,27 +95,6 @@
       return new Decimal('' + Math.sin(this.pos.phi))
     }
 
-    klass.prototype.render = function(renderer) {
-      var ctx           = renderer.context,
-          world_coords  = this.getCoordinates(),
-          coords        = renderer.convertWorldToCanvas(world_coords),
-          planet_radius = this.getRadiusForRendering(renderer),
-          soi_radius    = this.getSOIRadiusForRendering(renderer)
-
-      ctx.beginPath()
-      ctx.arc(coords.x, coords.y, planet_radius, 0, 2 * Math.PI)
-      ctx.fillStyle = this.color
-      ctx.fill()
-      if (soi_radius && soi_radius > planet_radius) {
-        ctx.beginPath()
-        ctx.arc(coords.x, coords.y, soi_radius, 0, 2 * Math.PI)
-        ctx.strokeStyle = '#FFFFFF'
-        ctx.lineWidth = 1
-        ctx.stroke()
-      }
-      this.renderName(renderer, coords)
-    }
-
     klass.prototype.renderName = function(renderer, coords) {
       if (renderer.getZoom().lt(700) && !this.parentIsSun()) return
 
@@ -184,6 +163,18 @@
 
     klass.prototype.getBodiesInSOI = function() {
       return this.bodies_in_soi
+    }
+
+    klass.prototype.getEccentricity = function() {
+      return this.e
+    }
+
+    klass.prototype.getArgumentOfPeriapsis = function() {
+      return 0
+    }
+
+    klass.prototype.getParentCoordinates = function() {
+      return this.getParent().getCoordinates()
     }
 
     makeObservable.bind(this)(klass)

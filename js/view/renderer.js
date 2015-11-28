@@ -12,7 +12,17 @@
       this.origin       = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 }
       this.offset       = { x: new Decimal(0), y: new Decimal(0) }
       this.zoom         = new Decimal(1)
+      this.renderers    = []
       this.initCanvas(canvas)
+    }
+
+    klass.prototype.registerRenderer = function(renderer) {
+      renderer.setParentRenderer(this)
+      this.renderers.push(renderer)
+    }
+
+    klass.prototype.getContext = function() {
+      return this.context
     }
 
     klass.prototype.smoothZoomOut = function() {
@@ -91,6 +101,12 @@
 
     klass.prototype.scaleWorldToCanvasY = function(point) {
       return new Decimal(point).dividedBy(this.world_size.height).times(this.canvas_size.height / 2).times(this.zoom)
+    }
+
+    klass.prototype.render = function(body) {
+      for (var i = 0; i < this.renderers.length; i++) {
+        this.renderers[i].render(body)
+      }
     }
 
     return klass

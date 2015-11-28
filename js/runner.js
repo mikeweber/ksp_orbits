@@ -5,7 +5,31 @@ player.zoomTo(new Decimal(200))
 player.run()
 player.track('Ike')
 addListeners(jQuery, player)
-addManeuvers(player.sim, jQuery)
+// runDunaIntercept(player.sim, jQuery)
+runFlightBack(player.sim, jQuery)
+
+function runFlightBack(sim, $) {
+  'use strict'
+
+  var stat = new FlightPlanner.View.FlightStatus(sim, 1, 'Launching from Duna')
+  $('#status').append(stat.getPanel())
+
+  sim.setTime(18872150)
+  sim.removeBody('Duna Mission')
+  var plan = new FlightPlanner.Model.FlightPlan(sim, 'Return Mission', stat, 18872150).scheduleLaunchFromPlanet(
+    sim.getBody('Duna'),
+    2200,
+    {
+      throttle:         0,
+      max_accel:        0.2,
+      fuel_consumption: 0.19,
+      initial_angle:    -Math.PI / 2,
+      heading:          0,
+      absolute_heading: false,
+      target:           sim.getBody('Kerbin')
+    }
+  )
+}
 
 function initUniverse() {
   'use strict'
@@ -18,11 +42,14 @@ function initUniverse() {
       ike       = new FlightPlanner.Model.Planet('Ike',    duna,   1.3e5, '#999999', 1.8568369e10, 3.2e6,       -Math.PI * 1.7, 0.03, 1.0495989e6),
       size      = 2.3e10,
       world     = { width: size, height: size },
-      canvas    = { width: 500, height: 500 },
-      renderer  = new FlightPlanner.View.Renderer($('#flightplan')[0], world, canvas),
+      canvas_dimensions = { width: 500, height: 500 },
+      canvas    = $('#flightplan')[0],
+      renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
       t         = 1.88719e7,
       sim       = new FlightPlanner.Controller.Simulator(t, [ike, duna, minmus, mun, kerbin, sun], 256)
 
+  renderer.registerRenderer(new FlightPlanner.View.ConicRenderer())
+  renderer.registerRenderer(new FlightPlanner.View.PlanetRenderer())
   var runner = {
     sim:      sim,
     renderer: renderer,
@@ -51,7 +78,7 @@ function initUniverse() {
   return runner
 }
 
-function addManeuvers(sim, $) {
+function runDunaIntercept(sim, $) {
   'use strict'
 
   var stat = new FlightPlanner.View.FlightStatus(sim, 1, 'Launching from Kerbin')

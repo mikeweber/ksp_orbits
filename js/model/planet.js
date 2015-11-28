@@ -7,9 +7,10 @@
     var klass = function Planet(name, parent, radius, color, mu,    semimajor_axis, anomoly, e, soi) {
       var pos = { r: semimajor_axis, phi: anomoly }
       this.initializeParameters(name, parent, radius, color, mu, 0, semimajor_axis, pos, e, Math.PI / 2)
-      this.soi          = new Decimal(soi)
-      this.innerbb      = this.soi.toPower(2).dividedBy(2).sqrt()
-      this.trail_length = Math.floor(this.getOrbitalPeriod() / WEEK)
+      this.soi             = new Decimal(soi)
+      this.inner_soi_bb    = this.soi.toPower(2).dividedBy(2).sqrt()
+      this.radius_inner_bb = this.getRadius().toPower(2).dividedBy(2).sqrt()
+      this.trail_length    = Math.floor(this.getOrbitalPeriod() / WEEK)
       if (this.getOrbitalPeriod().lt(WEEK * 4)) {
         this.breadcrumb_delta
       }
@@ -56,18 +57,25 @@
     }
 
     klass.prototype.isInSOI = function(ship) {
-      var ship_coords = ship.getCoordinates(),
-          planet_coords = this.getCoordinates(),
-          dist_x = ship_coords.x.minus(planet_coords.x).abs(),
-          dist_y = ship_coords.y.minus(planet_coords.y).abs()
+      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.soi, this.inner_soi_bb)
+    }
+
+    klass.prototype.isColliding = function(ship) {
+      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.getRadius(), this.radius_inner_bb)
+    }
+
+    function detectIntersection(obj1_coords, obj2_coords, outerbb, innerbb) {
+      var dist_x = obj1_coords.x.minus(obj2_coords.x).abs(),
+          dist_y = obj1_coords.y.minus(obj2_coords.y).abs()
+
       // Optimized detection;
       // SOI intersection not possible when dist in x or y axis is larger than the radius
-      if (dist_x.gt(this.soi) || dist_y.gt(this.soi)) return false
+      if (dist_x.gt(outerbb) || dist_y.gt(outerbb)) return false
       // If the ship is within the inner bounding box (the largest square that can fit in the SOI),
       // then it is definitely within the SOI
-      if (dist_x.lt(this.innerbb) && dist_y.lt(this.innerbb)) return true
+      if (dist_x.lt(innerbb) && dist_y.lt(innerbb)) return true
       // Finally fall through and check the edge case by looking at the distance between the ships
-      return helpers.calcCoordDistance(planet_coords, ship_coords).lessThan(this.soi)
+      return helpers.calcCoordDistance(obj1_coords, obj2_coords).lessThan(outerbb)
     }
 
     return klass

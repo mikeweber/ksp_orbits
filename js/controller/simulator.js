@@ -5,11 +5,21 @@
 
   namespace.Simulator = (function() {
     var klass = function Simulator(time, bodies, tick_size, debug) {
-      this.t         = new Decimal(time)
+      this.setTime(time)
       this.setBodies(bodies)
       this.tick_size = tick_size
       this.running   = false
       this.debugger  = debug
+    }
+
+    klass.prototype.setTime = function(time) {
+      this.t = new Decimal(time)
+    }
+
+    klass.prototype.removeBody = function(name) {
+      for (var i = this.bodies.length; i--; ) {
+        if (this.bodies[i].name === name) this.bodies.splice(i, 1)
+      }
     }
 
     klass.prototype.track = function(celestial_object) {
@@ -66,7 +76,7 @@
           }
 
           for (i = this.bodies.length; i--; ) {
-            this.bodies[i].render(renderer)
+            renderer.render(this.bodies[i])
           }
           this.showSimDetails(renderer)
           last_run = now
