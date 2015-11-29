@@ -1,4 +1,4 @@
-(function(namespace) {
+(function(namespace, helpers) {
   namespace.PlanetRenderer = (function() {
     var klass = function PlanetRenderer(canvas, body, color, min_radius) {
       this.init(canvas)
@@ -16,7 +16,7 @@
           coords        = this.convertWorldToCanvas(world_coords),
           planet_radius = this.getRadiusForRendering(),
           soi_radius    = this.getSOIRadiusForRendering()
-
+      this.renderBreadcrumbs()
       this.renderFilledCircle(coords, planet_radius, { fill_style: this.color })
       if (soi_radius && soi_radius > planet_radius) {
         this.renderCircle(coords, soi_radius, { stroke_style: '#FFFFFF', line_width: 1 })
@@ -51,12 +51,12 @@
       var ctx = this.getContext()
       for (var i = this.body.breadcrumbs.length; i--; ) {
         var el     = this.body.breadcrumbs[i],
-            coords = this.convertLocalToCanvas(el.parent, el.pos)
-        var color = helpers.shadeRGBColor(this.color, -(this.body.breadcrumbs.length - i) * 0.005)
+            coords = this.convertLocalToCanvas(el.parent, el.pos),
+            color  = helpers.shadeRGBColor(this.color, -(this.body.breadcrumbs.length - i) * 0.005)
         this.renderFilledCircle(coords, 1, { fill_style: color })
       }
     }
 
     return klass
   })()
-})(FlightPlanner.View)
+})(FlightPlanner.View, FlightPlanner.Helper.Helper)
