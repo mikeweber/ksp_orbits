@@ -11,13 +11,14 @@ runDunaIntercept(player, jQuery)
 function followShipAndTarget(ship, player) {
   'use strict'
 
-  var zoom, coords1, coords2, coords3, zoom_x, zoom_y, dist_x, dist_y, dist_x2, dist_y2, port_x, port_y,
+  var zoom, coords1, coords3, zoom_x, zoom_y, dist_x, dist_y, dist_x2, dist_y2, port_x, port_y,
       closest_zoom = 500,
       kerbin       = player.sim.getBody('Kerbin'),
+      coords2      = kerbin.getCoordinates(),
       duna         = player.sim.getBody('Duna'),
-      cur_target   = kerbin
+      cur_target   = { getCoordinates: function() { return coords2 } }
 
-  player.renderer.observe('before:render', function() {
+  function follow() {
     coords1 = ship.getCoordinates()
     coords2 = cur_target.getCoordinates()
     port_x  = player.renderer.getViewportX().times(0.8)
@@ -35,11 +36,17 @@ function followShipAndTarget(ship, player) {
       }
     }
 
-    zoom = new Decimal('' + Math.min(player.renderer.world_size.width.dividedBy('' + dist_x), player.renderer.world_size.height.dividedBy('' + dist_y))).dividedBy(1.25)
+    zoom = new Decimal('' + Math.min(player.renderer.world_size.width.dividedBy('' + dist_x), player.renderer.world_size.height.dividedBy('' + dist_y))).times(0.8)
     if (zoom.lt(closest_zoom)) {
       player.renderer.zoomTo(zoom)
     }
-  })
+  }
+
+  player.renderer.observe('before:render', follow)
+  player.observe('after:smoothZoomIn',  function() { player.renderer.unobserve('before:render', follow) })
+  player.observe('after:smoothZoomOut', function() { player.renderer.unobserve('before:render', follow) })
+  player.observe('after:trackNext',     function() { player.renderer.unobserve('before:render', follow) })
+  player.observe('after:trackPrev',     function() { player.renderer.unobserve('before:render', follow) })
 }
 
 function runFlightBack(player, $) {
@@ -66,7 +73,7 @@ function runFlightBack(player, $) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
     player.renderer.registerRenderer(ship_r)
     followShipAndTarget(ship, player)
-    plan.unobserve(addShipRenderer)
+    plan.unobserve('after:blastOff', addShipRenderer)
   }
 
   plan.observe('after:blastOff', addShipRenderer)
@@ -123,32 +130,8 @@ function initUniverse() {
   renderer.registerRenderer(mun_r)
   renderer.registerRenderer(minmus_r)
   renderer.registerRenderer(ike_r)
-  var runner = {
-    sim:      sim,
-    renderer: renderer,
-    run:      function() { sim.run(renderer) },
-    track:    function(obj_name) {
-      var obj = sim.getBody(obj_name)
-      if (!obj) {
-        console.error('Could not find "' + obj_name + '"')
-        return
-      }
 
-      sim.track(obj)
-    },
-    togglePaused:  sim.togglePaused.bind(sim),
-    zoomTo:        renderer.zoomTo.bind(renderer),
-    zoomIn:        renderer.zoomIn.bind(renderer),
-    zoomOut:       renderer.zoomOut.bind(renderer),
-    smoothZoomIn:  renderer.smoothZoomIn.bind(renderer),
-    smoothZoomOut: renderer.smoothZoomOut.bind(renderer),
-    speedUp:       sim.faster.bind(sim),
-    slowDown:      sim.slower.bind(sim),
-    trackNext:     sim.trackNext.bind(sim),
-    trackPrev:     sim.trackPrev.bind(sim)
-  }
-
-  return runner
+  return new FlightPlanner.Controller.Player(sim, renderer)
 }
 
 function runDunaIntercept(player, $) {
@@ -175,14 +158,14 @@ function runDunaIntercept(player, $) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
     player.renderer.registerRenderer(ship_r)
     followShipAndTarget(ship, player)
-    plan.unobserve(addShipRenderer)
+    plan.unobserve('after:blastOff', addShipRenderer)
   }
 
   plan.observe('after:blastOff', addShipRenderer)
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(status_tracker) {
     status_tracker.setMessage('Decelerating on approach to Duna')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.5)), true, 1).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Matching velocity and vector with planet')
   })
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.18e5) }, 0, false, 0).done(function(status_tracker) {
@@ -201,9 +184,16 @@ function runDunaIntercept(player, $) {
       plan.addManeuver(function(t, ship) { return ship.pos.r.minus(500).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
         status_tracker.setMessage('Lowering periapsis and circularizing orbit')
 
-        plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker) {
-          status_tracker.setMessage('Orbit circularized')
-          player.sim.togglePaused()
+        plan.addManeuver(function(t, ship) { return ship.calcOrbitalParams().pe.lt(500000) }, 0, false, 0).done(function(status_tracker) {
+          status_tracker.setMessage('Waiting to reach parking orbit')
+
+          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(200).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+            status_tracker.setMessage('Circularizing orbit...')
+
+            plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker) {
+              status_tracker.setMessage('Parking orbit reached')
+            })
+          })
         })
       })
     })
@@ -213,31 +203,31 @@ function runDunaIntercept(player, $) {
 function addListeners($, player) {
   'use strict'
 
-  $('#pause').on(      'click', player.togglePaused)
-  $('#zoom_in').on(    'click', player.zoomIn)
-  $('#zoom_out').on(   'click', player.zoomOut)
-  $('#faster').on(     'click', player.speedUp)
-  $('#slower').on(     'click', player.slowDown)
-  $('#prev_target').on('click', player.trackPrev)
-  $('#next_target').on('click', player.trackNext)
+  $('#pause').on(      'click', function() { player.execute('togglePaused') })
+  $('#zoom_in').on(    'click', function() { player.execute('zoomIn') })
+  $('#zoom_out').on(   'click', function() { player.execute('zoomOut') })
+  $('#faster').on(     'click', function() { player.execute('speedUp') })
+  $('#slower').on(     'click', function() { player.execute('slowDown') })
+  $('#prev_target').on('click', function() { player.execute('trackPrev') })
+  $('#next_target').on('click', function() { player.execute('trackNext') })
   $(window).on('keyup', function(e) {
     var key = e.keyCode ? e.keyCode : e.which
 
     if (key === 27 || key === 32) {
       // esc
-      player.togglePaused()
+      player.execute('togglePaused')
     } else if (key === 190) {
       // >
-      player.speedUp()
+      player.execute('speedUp')
     } else if (key === 188) {
       // <
-      player.slowDown()
+      player.execute('slowDown')
     } else if (key === 221) {
       // [
-      player.trackNext()
+      player.execute('trackNext')
     } else if (key === 219) {
       // ]
-      player.trackPrev()
+      player.execute('trackPrev')
     }
   })
 
@@ -245,10 +235,10 @@ function addListeners($, player) {
     var key = e.keyCode ? e.keyCode : e.which
     if (key === 187) {
       // +
-      player.smoothZoomIn()
+      player.execute('smoothZoomIn')
     } else if (key === 189) {
       // -
-      player.smoothZoomOut()
+      player.execute('smoothZoomOut')
     }
   })
 }
