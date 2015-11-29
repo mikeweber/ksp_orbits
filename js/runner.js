@@ -8,6 +8,40 @@ addListeners(jQuery, player)
 runDunaIntercept(player, jQuery)
 //runFlightBack(player, jQuery)
 
+function followShipAndTarget(ship, player) {
+  'use strict'
+
+  var zoom, coords1, coords2, coords3, zoom_x, zoom_y, dist_x, dist_y, dist_x2, dist_y2, port_x, port_y,
+      closest_zoom = 500,
+      kerbin       = player.sim.getBody('Kerbin'),
+      duna         = player.sim.getBody('Duna'),
+      cur_target   = kerbin
+
+  player.renderer.observe('before:render', function() {
+    coords1 = ship.getCoordinates()
+    coords2 = cur_target.getCoordinates()
+    port_x  = player.renderer.getViewportX().times(0.8)
+    port_y  = player.renderer.getViewportY().times(0.8)
+    dist_x  = coords1.x.minus(coords2.x).abs()
+    dist_y  = coords1.y.minus(coords2.y).abs()
+    if (cur_target !== duna) {
+      coords3 = duna.getCoordinates()
+      dist_x2 = coords1.x.minus(coords3.x).abs()
+      dist_y2 = coords1.y.minus(coords3.y).abs()
+      if (dist_x2.lt(port_x) || dist_y2.lt(port_y)) {
+        cur_target = duna
+        dist_x     = dist_x2
+        dist_y     = dist_y2
+      }
+    }
+
+    zoom = new Decimal('' + Math.min(player.renderer.world_size.width.dividedBy('' + dist_x), player.renderer.world_size.height.dividedBy('' + dist_y))).dividedBy(1.25)
+    if (zoom.lt(closest_zoom)) {
+      player.renderer.zoomTo(zoom)
+    }
+  })
+}
+
 function runFlightBack(player, $) {
   'use strict'
 
@@ -31,6 +65,7 @@ function runFlightBack(player, $) {
   function addShipRenderer(ship) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
     player.renderer.registerRenderer(ship_r)
+    followShipAndTarget(ship, player)
     plan.unobserve(addShipRenderer)
   }
 
@@ -139,6 +174,7 @@ function runDunaIntercept(player, $) {
   function addShipRenderer(ship) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
     player.renderer.registerRenderer(ship_r)
+    followShipAndTarget(ship, player)
     plan.unobserve(addShipRenderer)
   }
 

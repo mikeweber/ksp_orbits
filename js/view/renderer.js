@@ -1,6 +1,6 @@
 /* global FlightPlanner Decimal */
 
-(function(namespace, helpers) {
+(function(namespace, helpers, makeObservable) {
   'use strict'
 
   namespace.Renderer = (function() {
@@ -69,6 +69,14 @@
       this.zoom = new Decimal(zoom)
     }
 
+    klass.prototype.getViewportX = function() {
+      return this.world_size.width.dividedBy(this.zoom)
+    }
+
+    klass.prototype.getViewportY = function() {
+      return this.world_size.height.dividedBy(this.zoom)
+    }
+
     klass.prototype.getOffset = function() {
       return this.offset
     }
@@ -115,6 +123,7 @@
     }
 
     klass.prototype.render = function() {
+      this.notifyObservers('before:render')
       var cleared_scenes = []
       for (var i = this.renderers.length; i--; ) {
         var renderer = this.renderers[i], context = renderer.getContext()
@@ -124,8 +133,11 @@
         }
         renderer.render()
       }
+      this.notifyObservers('after:render')
     }
+
+    makeObservable(klass)
 
     return klass
   })()
-})(FlightPlanner.View, FlightPlanner.Helper.Helper)
+})(FlightPlanner.View, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)
