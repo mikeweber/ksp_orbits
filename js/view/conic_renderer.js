@@ -18,11 +18,12 @@
 
       if (!this.body.parentIsSun() && this.getZoom().lt(200)) return
 
-      // if (e == 0) {
-      //   this.renderCircle(coords, a, style)
-      // } else if (e > 0 && e < 1) {
+      if (e == 0) {
+        this.renderCircle(coords, a, style)
+        this.renderEllipse(coords, a, e, this.body.getArgumentOfPeriapsis(), { stroke_style: '#777732', line_width: 1 })
+      } else if (e > 0 && e < 1) {
         this.renderEllipse(coords, a, e, this.body.getArgumentOfPeriapsis(), style)
-      // }
+      }
     }
 
     klass.prototype.getStyle = function() {

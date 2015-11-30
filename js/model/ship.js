@@ -225,6 +225,11 @@
       return p1.times(p2).plus(p3).sqrt()
     }
 
+    klass.prototype.getSemiMajorAxis = function() {
+      var orbital_params = this.calcOrbitalParams()
+      return orbital_params.pe.plus(orbital_params.ap).dividedBy(2)
+    }
+
     klass.prototype.calcOrbitalParams = function() {
       // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
       var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),

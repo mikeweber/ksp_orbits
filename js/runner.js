@@ -70,8 +70,10 @@ function runFlightBack(player, $) {
     }
   )
   function addShipRenderer(ship) {
-    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
+    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
+        ship_cr = new FlightPlanner.View.ConicRenderer(conics, ship)
     player.renderer.registerRenderer(ship_r)
+    // player.renderer.registerRenderer(ship_cr)
     followShipAndTarget(ship, player)
     plan.unobserve('after:blastOff', addShipRenderer)
   }
@@ -158,8 +160,10 @@ function runDunaIntercept(player, $) {
   )
 
   function addShipRenderer(ship) {
-    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2)
+    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
+        ship_cr = new FlightPlanner.View.ConicRenderer($('#flightpaths')[0], ship)
     player.renderer.registerRenderer(ship_r)
+    // player.renderer.registerRenderer(ship_cr)
     followShipAndTarget(ship, player)
     plan.unobserve('after:blastOff', addShipRenderer)
   }
@@ -190,10 +194,11 @@ function runDunaIntercept(player, $) {
         plan.addManeuver(function(t, ship) { return ship.calcOrbitalParams().pe.lt(500000) }, 0, false, 0).done(function(status_tracker) {
           status_tracker.setMessage('Waiting to reach parking orbit')
 
-          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(200).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(35000).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
             status_tracker.setMessage('Circularizing orbit...')
 
-            plan.addManeuver(function(t, ship) { return ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker) {
+            // Circular orbit at 600km from center of Duna has a velocity of 818 m/s
+            plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(820) }, 0, false, 0).done(function(status_tracker) {
               status_tracker.setMessage('Parking orbit reached')
             })
           })
