@@ -91,6 +91,7 @@ function initUniverse() {
       canvas    = $('#flightplan')[0],
       conics    = $('#flightpaths')[0],
       ships     = $('#ships')[0],
+      info      = $('#info')[0],
       sun_r     = new FlightPlanner.View.PlanetRenderer(canvas, sun,    '#FFFF00', 7),
       kerbin_r  = new FlightPlanner.View.PlanetRenderer(canvas, kerbin, '#7777FF', 4),
       duna_r    = new FlightPlanner.View.PlanetRenderer(canvas, duna,   '#FF3333', 4),
@@ -110,7 +111,8 @@ function initUniverse() {
       renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
       launch_t  = 1.88719e7,
       return_t  = 1.887215e7,
-      sim       = new FlightPlanner.Controller.Simulator(launch_t, [ike, duna, minmus, mun, kerbin, sun], 64)
+      sim       = new FlightPlanner.Controller.Simulator(launch_t, [ike, duna, minmus, mun, kerbin, sun], 64),
+      player    = new FlightPlanner.Controller.Player(sim, renderer)
 
   kerbin.addChild(mun)
   kerbin.addChild(minmus)
@@ -118,6 +120,7 @@ function initUniverse() {
   sun.addChild(kerbin)
   sun.addChild(duna)
   renderer.registerRenderer(new FlightPlanner.View.BackgroundRenderer(bg))
+  renderer.registerRenderer(new FlightPlanner.View.SimDetails(info, player))
   renderer.registerRenderer(sun_cr)
   renderer.registerRenderer(kerbin_cr)
   renderer.registerRenderer(duna_cr)
@@ -131,7 +134,7 @@ function initUniverse() {
   renderer.registerRenderer(minmus_r)
   renderer.registerRenderer(ike_r)
 
-  return new FlightPlanner.Controller.Player(sim, renderer)
+  return player
 }
 
 function runDunaIntercept(player, $) {

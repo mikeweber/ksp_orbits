@@ -70,7 +70,6 @@
         var crumbs = 0
         if (now - last_run > 17) {
           renderer.render()
-          this.showSimDetails(renderer)
           last_run = now
         }
         setTimeout(render.bind(this), 1)
@@ -118,16 +117,6 @@
 
     klass.prototype.togglePaused = function() {
       this.running = !this.running
-    }
-
-    klass.prototype.showSimDetails = function(renderer) {
-      renderer.context.textAlign = 'start'
-      renderer.context.textBaseline = 'bottom'
-      renderer.print('Zoom: ' + renderer.zoom.round(), 5, 10)
-      renderer.print('Warp: ' + this.tick_size, 5, 20)
-      renderer.print(this.getKerbalDate(), 5, 30)
-      renderer.print('T+' + this.t, 5, 40)
-      renderer.print('Focused on ' + this.getTrackingName(), 5, 50)
     }
 
     klass.prototype.getTrackingName = function() {

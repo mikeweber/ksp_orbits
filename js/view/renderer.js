@@ -96,11 +96,6 @@
       return this.canvas_size.height
     }
 
-    klass.prototype.print = function(text, x, y) {
-      this.context.fillStyle = '#FFF'
-      this.context.fillText(text, x, y)
-    }
-
     klass.prototype.convertLocalToCanvas = function(parent, local_pos) {
       var parent_coords = parent.getCoordinates(),
           local_coords  = helpers.posToCoordinates(local_pos)

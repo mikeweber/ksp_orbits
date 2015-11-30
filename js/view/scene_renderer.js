@@ -30,24 +30,74 @@
     }
 
     klass.prototype.renderEllipse = function(coords, a, e, pe, style) {
-      this.renderCircle(coords, a, style)
-    }
+      var context   = this.getContext(),
+          one       = new Decimal(1),
+          offcenter = a.times(e),
+          center    = { x: coords.x.minus(offcenter), y: coords.y },
+          r1        = a.times(one.minus(e)),
+          r2        = a.times(one.plus(e)),
+          b         = a.toPower(2).times(one.minus(e.toPower(2))).sqrt(),
+          // source: http://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves
+          // A 4 pointed bezier curve uses a handle distance of 4*(sqrt(2)-1)/3 = 0.552284749831)
+          k         = 0.552284749831
 
-    klass.prototype.renderCircle = function(coords, radius, style) {
-      var context = startCircle(this.getContext(), coords, radius)
+      context.save()
+      context.beginPath()
+      // context.translate(coords.x, coords.y)
+      context.rotate(pe)
+      context.moveTo(center.x.plus(a), center.y)
+      context.bezierCurveTo(
+        center.x.plus(a),           center.y.plus(b.times(k)),
+        center.x.plus(a.times(k)),  center.y.plus(b),
+        center.x,                   center.y.plus(b)
+      )
+      context.bezierCurveTo(
+        center.x.minus(a.times(k)), center.y.plus(b),
+        center.x.minus(a),          center.y.plus(b.times(k)),
+        center.x.minus(a),          center.y
+      )
+      context.bezierCurveTo(
+        center.x.minus(a),          center.y.minus(b.times(k)),
+        center.x.minus(a.times(k)), center.y.minus(b),
+        center.x,                   center.y.minus(b)
+      )
+      context.bezierCurveTo(
+        center.x.plus(a.times(k)),  center.y.minus(b),
+        center.x.plus(a),           center.y.minus(b.times(k)),
+        center.x.plus(a),           center.y
+      )
       context.strokeStyle = style.stroke_style
       context.lineWidth   = style.line_width
       context.stroke()
+      context.restore()
+    }
+
+    klass.prototype.print = function(text, x, y) {
+      this.getContext().fillStyle = '#FFF'
+      this.getContext().fillText(text, x, y)
+    }
+
+    klass.prototype.renderCircle = function(coords, radius, style) {
+      var context = this.getContext()
+      context.save()
+      startCircle(context, coords, radius)
+      context.strokeStyle = style.stroke_style
+      context.lineWidth   = style.line_width
+      context.stroke()
+      context.restore()
     }
 
     klass.prototype.renderFilledCircle = function(coords, radius, style) {
-      var context = startCircle(this.getContext(), coords, radius)
+      var context = this.getContext()
+      context.save()
+      startCircle(context, coords, radius)
       context.fillStyle = style.fill_style
       context.fill()
+      context.restore()
     }
 
     klass.prototype.clear = function() {
-      this.getContext().clearRect(0, 0, this.getCanvasWidth(), this.getCanvasHeight())
+      this.getContext().clearRect(0, 0, this.getCanvasWidth().toNumber(), this.getCanvasHeight().toNumber())
     }
 
     function startCircle(context, coords, radius) {

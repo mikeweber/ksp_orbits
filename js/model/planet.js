@@ -10,7 +10,6 @@
       this.soi             = new Decimal(soi)
       this.inner_soi_bb    = this.soi.toPower(2).dividedBy(2).sqrt()
       this.radius_inner_bb = this.getRadius().toPower(2).dividedBy(2).sqrt()
-      this.trail_length    = Math.floor(this.getOrbitalPeriod() / WEEK)
       if (this.getOrbitalPeriod().lt(WEEK * 4)) {
         this.breadcrumb_delta
       }
