@@ -22,12 +22,8 @@
         .append(this.getPanelFor('launch_date'))
         .append(this.makeTitle('T+'))
         .append(this.getPanelFor('mission_time'))
-        .append(this.makeTitle('SOI'))
-        .append(this.getPanelFor('soi'))
-        .append(this.makeTitle('Distance from Kerbin'))
-        .append(this.getPanelFor('kerbin_distance'))
-        .append(this.makeTitle('Distance from Duna'))
-        .append(this.getPanelFor('duna_distance'))
+        .append(this.makeTitle('Status'))
+        .append(this.getPanelFor('message'))
         .append(this.makeTitle('Velocity'))
         .append(this.getPanelFor('vel'))
         .append(this.makeTitle('Throttle'))
@@ -48,8 +44,6 @@
         .append(this.getPanelFor('prograde'))
         .append(this.makeTitle('Heading'))
         .append(this.getPanelFor('heading'))
-        .append(this.makeTitle('Status'))
-        .append(this.getPanelFor('message'))
     }
 
     klass.prototype.updateStatus = function(t, ship) {
