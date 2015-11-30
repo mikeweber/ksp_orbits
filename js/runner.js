@@ -108,7 +108,7 @@ function initUniverse() {
       ike_cr    = new FlightPlanner.View.ConicRenderer(conics, ike),
       size      = 2.3e10,
       world     = { width: size, height: size },
-      canvas_dimensions = { width: 500, height: 500 },
+      canvas_dimensions = { width: 700, height: 700 },
       bg        = $('#background')[0],
       renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
       launch_t  = 1.88719e7,
