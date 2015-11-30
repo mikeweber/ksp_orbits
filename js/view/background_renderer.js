@@ -19,6 +19,15 @@
       context.rect(0, 0, this.getCanvasWidth(), this.getCanvasHeight())
       context.fillStyle = '#000000'
       context.fill()
+
+      for (var i = 0; i < 1000; i++) {
+        context.beginPath()
+        var x = this.canvas.width * Math.random(),
+            y = this.canvas.height * Math.random(),
+            size = (Math.random() + Math.random() + Math.random() + Math.random()) / 5
+
+            this.renderFilledCircle({ x: x, y: y }, size, { fill_style: '#FFFFFF' })
+      }
     }
 
     klass.prototype.clear = function() {}
