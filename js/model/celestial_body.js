@@ -12,7 +12,7 @@
       this.mu       = new Decimal(mu)
       this.v        = new Decimal(v)
       this.a        = new Decimal(semimajor_axis)
-      this.pos      = { 'r': new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
+      this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
       this.m        = this.pos.phi
       this.e        = new Decimal(e)
       this.prograde = new Decimal('' + prograde)
@@ -21,6 +21,13 @@
       this.trail_length     = 0
       this.breadcrumbs      = []
       this.bodies_in_soi    = []
+    }
+
+    klass.prototype.isSun = function() { return false }
+
+    klass.prototype.sunAngle = function() {
+      var pos = this.getCoordinates()
+      return new Decimal('' + Math.atan2(pos.y, pos.x))
     }
 
     klass.prototype.addChild = function(child) {

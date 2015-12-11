@@ -15,10 +15,12 @@
 
       this.rendered = true
       var context = this.getContext()
+      context.save()
       context.beginPath()
       context.rect(0, 0, this.getCanvasWidth(), this.getCanvasHeight())
       context.fillStyle = '#000000'
       context.fill()
+      context.restore()
 
       for (var i = 0; i < 1000; i++) {
         context.beginPath()
@@ -26,7 +28,7 @@
             y = this.canvas.height * Math.random(),
             size = (Math.random() + Math.random() + Math.random() + Math.random()) / 5
 
-            this.renderFilledCircle({ x: x, y: y }, size, { fill_style: '#FFFFFF' })
+        this.renderFilledCircle({ x: x, y: y }, size, { fill_style: '#FFFFFF' })
       }
     }
 

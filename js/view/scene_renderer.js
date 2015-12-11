@@ -73,8 +73,11 @@
     }
 
     klass.prototype.print = function(text, x, y) {
-      this.getContext().fillStyle = '#FFF'
-      this.getContext().fillText(text, x, y)
+      var context = this.getContext()
+      context.save()
+      context.fillStyle = '#FFF'
+      context.fillText(text, x, y)
+      context.restore()
     }
 
     klass.prototype.renderCircle = function(coords, radius, style) {

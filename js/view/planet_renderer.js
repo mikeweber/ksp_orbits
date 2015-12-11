@@ -21,7 +21,29 @@
       if (soi_radius && soi_radius > planet_radius) {
         this.renderCircle(coords, soi_radius, { stroke_style: '#FFFFFF', line_width: 1 })
       }
+      this.renderShadow()
       this.renderName()
+    }
+
+    klass.prototype.renderShadow = function() {
+      if (this.body.isSun()) return
+
+      var context   = this.getContext(),
+          coords    = this.convertWorldToCanvas(this.body.getCoordinates()),
+          radius    = this.getRadiusForRendering(),
+          sun_angle = this.body.sunAngle(),
+          start     = sun_angle.minus('' + Math.PI / 2),
+          end       = sun_angle.plus('' + Math.PI / 2)
+      context.save()
+      context.beginPath()
+      context.arc(coords.x, coords.y, radius, start, end)
+      context.shadowBlur    = 20
+      context.shadowOffsetX = 0
+      context.shadowOffsetY = 0
+      context.fillStyle     = 'rgba(0, 0, 0, 0.6)'
+      context.shadowColor   = '#000000'
+      context.fill()
+      context.restore()
     }
 
     klass.prototype.renderName = function() {
@@ -29,6 +51,7 @@
 
       var context = this.getContext(),
           coords  = this.convertWorldToCanvas(this.body.getCoordinates())
+      context.save()
       context.textAlign     = 'center'
       context.textBaseline  = 'top'
       context.shadowColor   = '#000000'
@@ -36,6 +59,7 @@
       context.shadowOffsetY = 1
       context.shadowBlur    = 1
       this.print(this.body.name, coords.x, coords.y)
+      context.restore()
     }
 
     klass.prototype.getRadiusForRendering = function() {

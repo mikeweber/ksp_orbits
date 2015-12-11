@@ -73,7 +73,7 @@ function runFlightBack(player, $) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
         ship_cr = new FlightPlanner.View.ConicRenderer(conics, ship)
     player.renderer.registerRenderer(ship_r)
-    // player.renderer.registerRenderer(ship_cr)
+    player.renderer.registerRenderer(ship_cr)
     followShipAndTarget(ship, player)
     plan.unobserve('after:blastOff', addShipRenderer)
   }
@@ -88,7 +88,7 @@ function initUniverse() {
       kerbin    = new FlightPlanner.Model.Planet('Kerbin', 6e5,   3.5316e12,    13599840256, -Math.PI,       0,    8.4159286e7),
       duna      = new FlightPlanner.Model.Planet('Duna',   3.2e5, 3.0136321e11, 20726155264, -Math.PI,       0.05, 4.7921949e7),
       mun       = new FlightPlanner.Model.Planet('Mün',    2.0e5, 6.5138398e10, 1.2e7,       -Math.PI * 1.7, 0,    2.4295591e6),
-      minmus    = new FlightPlanner.Model.Planet('Minmus', 6.0e5, 1.7658000e9,  4.7e7,       -Math.PI * 0.9, 0,    2.2474284e6),
+      minmus    = new FlightPlanner.Model.Planet('Minmus', 6.0e4, 1.7658000e9,  4.7e7,       -Math.PI * 0.9, 0,    2.2474284e6),
       ike       = new FlightPlanner.Model.Planet('Ike',    1.3e5, 1.8568369e10, 3.2e6,       -Math.PI * 1.7, 0.03, 1.0495989e6),
       canvas    = $('#flightplan')[0],
       conics    = $('#flightpaths')[0],
@@ -163,7 +163,7 @@ function runDunaIntercept(player, $) {
     var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
         ship_cr = new FlightPlanner.View.ConicRenderer($('#flightpaths')[0], ship)
     player.renderer.registerRenderer(ship_r)
-    // player.renderer.registerRenderer(ship_cr)
+    player.renderer.registerRenderer(ship_cr)
     followShipAndTarget(ship, player)
     plan.unobserve('after:blastOff', addShipRenderer)
   }

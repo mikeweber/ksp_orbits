@@ -20,6 +20,8 @@
     klass.prototype.getParent         = function() { return this }
     klass.prototype.getCoordinates    = function() { return this.coordinates }
     klass.prototype.parentIsSun       = function() { return true }
+    klass.prototype.getSun            = function() { return this }
+    klass.prototype.isSun             = function() { return true }
 
     return klass
   })()
