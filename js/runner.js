@@ -145,7 +145,7 @@ function runDunaIntercept(player, $) {
   var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin')
   $('#status').append(stat.getPanel())
 
-  var plan = new FlightPlanner.Model.FlightPlan(player.sim, 'Duna Mission', stat, 1.8872e7).scheduleLaunchFromPlanet(
+  var plan = new FlightPlanner.Model.FlightPlan(player, 'Duna Mission', stat, 1.8872e7).scheduleLaunchFromPlanet(
     player.sim.getBody('Kerbin'),
     70000,
     {
