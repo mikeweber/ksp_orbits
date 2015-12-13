@@ -33,17 +33,15 @@
       var context   = this.getContext(),
           one       = new Decimal(1),
           offcenter = a.times(e),
-          center    = { x: coords.x.minus(offcenter), y: coords.y },
-          r1        = a.times(one.minus(e)),
-          r2        = a.times(one.plus(e)),
+          center    = { x: offcenter.times(-1), y: new Decimal(0) },
           b         = a.toPower(2).times(one.minus(e.toPower(2))).sqrt(),
           // source: http://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves
           // A 4 pointed bezier curve uses a handle distance of 4*(sqrt(2)-1)/3 = 0.552284749831)
           k         = 0.552284749831
 
       context.save()
+      context.translate(coords.x, coords.y)
       context.beginPath()
-      // context.translate(coords.x, coords.y)
       context.rotate(pe)
       context.moveTo(center.x.plus(a), center.y)
       context.bezierCurveTo(
