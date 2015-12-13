@@ -13,7 +13,7 @@
       this.v        = new Decimal(v)
       this.a        = new Decimal(semimajor_axis)
       this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
-      this.m        = this.pos.phi
+      this.m        = new Decimal('' + this.pos.phi)
       this.e        = new Decimal(e)
       this.prograde = new Decimal('' + prograde)
       this.last_breadcrumb  = 0
@@ -54,6 +54,20 @@
     klass.prototype.getSemiMajorAxis = function() {
       // TODO: figure this out
       return new Decimal(1000)
+    }
+
+    klass.prototype.getArgumentOfPeriapsis = function(t) {
+      return this.pos.phi.minus('' + this.getMeanAnomoly(t))
+    }
+
+    klass.prototype.getMeanAnomoly = function(t) {
+      var common   = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.getParent().mu),
+          prograde = this.getPrograde()
+      return Math.atan2(common.times('' + Math.cos(prograde)).times('' + Math.sin(prograde)), common.times('' + (Math.cos(prograde) ^ 2)).minus(1))
+    }
+
+    klass.prototype.getInitMeanAnomoly = function() {
+      return this.m
     }
 
     klass.prototype.setTime = function(t) {
@@ -139,10 +153,6 @@
 
     klass.prototype.getEccentricity = function() {
       return this.e
-    }
-
-    klass.prototype.getArgumentOfPeriapsis = function() {
-      return 0
     }
 
     klass.prototype.getParentCoordinates = function() {

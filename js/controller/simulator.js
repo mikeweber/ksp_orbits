@@ -52,7 +52,7 @@
 
         var crumbs = 0
         if (now - last_run > 17) {
-          renderer.render()
+          renderer.render(this.t)
           last_run = now
         }
         setTimeout(render.bind(this), 1)

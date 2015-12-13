@@ -31,10 +31,6 @@
       this.dropBreadcrumb(t)
     }
 
-    klass.prototype.getSemiMajorAxis = function() {
-      return this.a
-    }
-
     klass.prototype.getPrograde = function() {
       return this.pos.phi.minus('' + Math.PI / 2)
     }
@@ -52,7 +48,19 @@
     }
 
     klass.prototype.getMeanAnomoly = function(t) {
-      return this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt().times(t).plus(this.m)
+      return this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt().times(t).plus('' + this.getInitMeanAnomoly())
+    }
+
+    klass.prototype.calcOrbitalParams = function() {
+      var ae = this.e.times(this.getSemiMajorAxis()),
+          pe = this.getSemiMajorAxis().minus(ae),
+          ap = this.getSemiMajorAxis().plus(ae)
+
+      return { pe: pe, ap: ap }
+    }
+
+    klass.prototype.getSemiMajorAxis = function() {
+      return this.a
     }
 
     return klass

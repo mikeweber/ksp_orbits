@@ -10,7 +10,7 @@
     klass.prototype = Object.create(namespace.SceneRenderer.prototype)
     klass.prototype.constructor = klass
 
-    klass.prototype.render = function() {
+    klass.prototype.render = function(t) {
       var e      = this.body.getEccentricity(),
           coords = this.convertWorldToCanvas(this.body.getParentCoordinates()),
           a      = this.scaleWorldToCanvasX(this.body.getSemiMajorAxis()),
@@ -19,7 +19,7 @@
       if (!this.body.parentIsSun() && this.getZoom().lt(200)) return
 
       if (e >= 0 && e < 1) {
-        this.renderEllipse(coords, a, e, this.body.getArgumentOfPeriapsis(), style)
+        this.renderEllipse(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
       }
     }
 

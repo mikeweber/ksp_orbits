@@ -160,7 +160,7 @@
       return new Decimal(point).dividedBy(this.world_size.height).times(this.canvas_size.height / 2).times(this.zoom)
     }
 
-    klass.prototype.render = function() {
+    klass.prototype.render = function(t) {
       this.notifyObservers('before:render')
       var cleared_scenes = []
       for (var i = this.renderers.length; i--; ) {
@@ -169,7 +169,7 @@
           cleared_scenes.push(context)
           renderer.clear()
         }
-        renderer.render()
+        renderer.render(t)
       }
       this.notifyObservers('after:render')
     }
