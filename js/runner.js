@@ -56,7 +56,7 @@ function runFlightBack(player, $) {
   $('#status').append(stat.getPanel())
 
   sim.removeBody('Duna Mission')
-  var plan = new FlightPlanner.Model.FlightPlan(sim, 'Return Mission', stat, 18872150).scheduleLaunchFromPlanet(
+  var plan = new FlightPlanner.Model.FlightPlan(player, 'Return Mission', stat, 18872150).scheduleLaunchFromPlanet(
     sim.getBody('Duna'),
     2200,
     {
