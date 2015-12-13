@@ -26,7 +26,7 @@
     }
 
     klass.prototype.renderShadow = function() {
-      if (this.body.isSun()) return
+      if (!this.body.hasShadow()) return
 
       var context   = this.getContext(),
           coords    = this.convertWorldToCanvas(this.body.getCoordinates()),
@@ -58,8 +58,8 @@
       context.shadowOffsetX = 1
       context.shadowOffsetY = 1
       context.shadowBlur    = 1
-      this.print(this.body.name, coords.x, coords.y)
       context.restore()
+      this.print(this.body.name, coords.x, coords.y)
     }
 
     klass.prototype.getRadiusForRendering = function() {

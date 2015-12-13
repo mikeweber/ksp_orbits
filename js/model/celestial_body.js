@@ -23,7 +23,7 @@
       this.bodies_in_soi    = []
     }
 
-    klass.prototype.isSun = function() { return false }
+    klass.prototype.hasShadow = function() { return true }
 
     klass.prototype.sunAngle = function() {
       var pos = this.getCoordinates()

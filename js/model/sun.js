@@ -21,7 +21,7 @@
     klass.prototype.getCoordinates    = function() { return this.coordinates }
     klass.prototype.parentIsSun       = function() { return true }
     klass.prototype.getSun            = function() { return this }
-    klass.prototype.isSun             = function() { return true }
+    klass.prototype.hasShadow         = function() { return false }
 
     return klass
   })()

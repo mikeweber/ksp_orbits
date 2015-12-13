@@ -16,6 +16,8 @@
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
     klass.prototype.constructor = klass
 
+    klass.prototype.hasShadow = function() { return false }
+
     klass.prototype.setTarget = function(target) {
       this.target = target
     }
