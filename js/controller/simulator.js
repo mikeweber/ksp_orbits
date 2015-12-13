@@ -22,10 +22,6 @@
       }
     }
 
-    klass.prototype.track = function(celestial_object) {
-      this.tracking = celestial_object
-    }
-
     klass.prototype.addBody = function(body) {
       this.bodies.push(body)
     }
@@ -34,18 +30,6 @@
       for (var i = this.bodies.length; i--; ) {
         if (this.bodies[i].name === name) return this.bodies[i]
       }
-    }
-
-    klass.prototype.trackNext = function() {
-      this.moveTracker(1)
-    }
-
-    klass.prototype.trackPrev = function() {
-      this.moveTracker(-1)
-    }
-
-    klass.prototype.moveTracker = function(i) {
-      this.tracking = this.bodies[(this.bodies.indexOf(this.tracking) + this.bodies.length + i) % this.bodies.length]
     }
 
     klass.prototype.setBodies = function(bodies) {
@@ -63,7 +47,6 @@
       (function render() {
         now = new Date()
         this.execute('stepBodies', this.t, this.tick_size)
-        focusOnBody(renderer, this.tracking)
         this.execute('debug')
         this.execute('tick')
 
@@ -82,12 +65,6 @@
       for (var i = this.bodies.length; i--; ) {
         this.bodies[i].execute('step', this.t, this.tick_size, this.bodies[i])
       }
-    }
-
-    function focusOnBody(renderer, body) {
-      if (!body) return
-
-      renderer.offset = body.getCoordinates()
     }
 
     klass.prototype.debug = function() {
@@ -117,10 +94,6 @@
 
     klass.prototype.togglePaused = function() {
       this.running = !this.running
-    }
-
-    klass.prototype.getTrackingName = function() {
-      return this.tracking ? this.tracking.name : null
     }
 
     klass.prototype.getKerbalDate = function() {

@@ -3,8 +3,9 @@
   'use strict'
 
   namespace.FlightPlan = (function() {
-    var klass = function FlightPlan(sim, ship_name, status_tracker, timestamp) {
-      this.simulator      = sim
+    var klass = function FlightPlan(player, ship_name, status_tracker, timestamp) {
+      this.simulator      = player.sim
+      this.renderer       = player.renderer
       this.ship_name      = ship_name
       this.status_tracker = status_tracker
       this.timestamp      = new Decimal(timestamp)
@@ -36,12 +37,12 @@
         this.ship.setThrottle(launch_data.throttle)
         this.ship.setTime(t)
         this.initObservers()
-        this.focusOnShip()
         this.simulator.addBody(this.ship)
         if (launch_data.target) this.ship.setTarget(launch_data.target)
 
         this.simulator.unobserve('before:stepBodies', conditional_activate)
         this.notifyObservers('after:blastOff', this.ship)
+        this.focusOnShip()
 
         return this.ship
       }.bind(this)
@@ -57,8 +58,11 @@
         this.ship.setMaxAcceleration(launch_data.max_accel)
         this.ship.setThrottle(launch_data.throttle)
         this.initObservers()
-        this.focusOnShip()
         if (launch_data.target) this.ship.setTarget(launch_data.target)
+
+        this.simulator.unobserve('before:stepBodies', conditional_activate)
+        this.notifyObservers('after:blastOff', this.ship)
+        this.focusOnShip()
       }.bind(this)
 
       this.simulator.observe('before:stepBodies', function(_tick_size, t) {
@@ -117,7 +121,7 @@
     }
 
     klass.prototype.focusOnShip = function() {
-      this.simulator.track(this.ship)
+      this.renderer.track(this.ship)
     }
 
     klass.prototype.addObserver = function(observer) {

@@ -11,7 +11,6 @@
       this.world_size   = { 'width': new Decimal(world_size.width),  'height': new Decimal(world_size.height) }
       this.canvas_size  = { 'width': new Decimal(canvas_size.width), 'height': new Decimal(canvas_size.height) }
       this.origin       = { x: this.canvas_size.width / 2, y: this.canvas_size.height / 2 }
-      this.offset       = { x: new Decimal(0), y: new Decimal(0) }
       this.zoom         = new Decimal(1)
       this.renderers    = []
       this.initCanvas(this.canvas)
@@ -29,6 +28,19 @@
           obj[fn_name] = klass.prototype[fn_name].bind(this)
         }
       }
+    }
+
+    klass.prototype.track = function(celestial_object) {
+      for (var i = this.renderers.length; i--; ) {
+        if (isTrackable(this.renderers[i]) && this.renderers[i].body == celestial_object) {
+          this.tracking = this.renderers[i]
+          return
+        }
+      }
+    }
+
+    klass.prototype.getTrackingName = function() {
+      return this.tracking ? this.tracking.body.name : null
     }
 
     klass.prototype.getContext = function() {
@@ -69,6 +81,33 @@
       this.zoom = new Decimal(zoom)
     }
 
+    klass.prototype.trackNext = function() {
+      this.moveTracker(1)
+    }
+
+    klass.prototype.trackPrev = function() {
+      this.moveTracker(-1)
+    }
+
+    klass.prototype.moveTracker = function(i) {
+      var trackables = this.getTrackables()
+      this.tracking = trackables[(trackables.indexOf(this.tracking) + trackables.length + i) % trackables.length]
+    }
+
+    klass.prototype.getTrackables = function() {
+      var a = []
+      for (var i = this.renderers.length; i--; ) {
+        if (isTrackable(this.renderers[i])) {
+          a.push(this.renderers[i])
+        }
+      }
+      return a
+    }
+
+    function isTrackable(renderer) {
+      return renderer.constructor === namespace.PlanetRenderer
+    }
+
     klass.prototype.getViewportX = function() {
       return this.world_size.width.dividedBy(this.zoom)
     }
@@ -78,7 +117,11 @@
     }
 
     klass.prototype.getOffset = function() {
-      return this.offset
+      if (this.tracking) {
+        return this.tracking.body.getCoordinates()
+      } else {
+        return { x: new Decimal(0), y: new Decimal(0) }
+      }
     }
 
     klass.prototype.initCanvas = function(canvas) {
@@ -104,8 +147,8 @@
 
     klass.prototype.convertWorldToCanvas = function(coords) {
       return {
-        x: this.scaleWorldToCanvasX(coords.x.minus(this.offset.x)).plus(this.origin.x),
-        y: this.scaleWorldToCanvasY(coords.y.minus(this.offset.y)).plus(this.origin.y)
+        x: this.scaleWorldToCanvasX(coords.x.minus(this.getOffset().x)).plus(this.origin.x),
+        y: this.scaleWorldToCanvasY(coords.y.minus(this.getOffset().y)).plus(this.origin.y)
       }
     }
 
