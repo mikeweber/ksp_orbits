@@ -38,7 +38,6 @@
         this.ship.setTime(t)
         this.initObservers()
         this.simulator.addBody(this.ship)
-        if (launch_data.target) this.ship.setTarget(launch_data.target)
 
         this.simulator.unobserve('before:stepBodies', conditional_activate)
         this.notifyObservers('after:blastOff', this.ship)
@@ -52,22 +51,35 @@
       return this
     }
 
-    klass.prototype.placeShip = function(parent_body, velocity, pos, prograde, heading, launch_data) {
+    klass.prototype.placeShip = function(parent_body, velocity, pos, prograde, launch_data) {
       this.initShip()
-      this.blastOff = function() {
+      this.watchForCollision()
+      var conditional_activate = function(t) {
+        if (this.timestamp.lt(t)) this.blastOff(t)
+      }.bind(this)
+      this.blastOff = function(t) {
+        this.notifyObservers('before:blastOff', this.ship)
+        this.ship.setParent(parent_body)
+        this.ship.setVelocity(velocity)
+        this.ship.setPositionUsingPosition(pos)
+        this.ship.setPrograde(prograde)
+        this.ship.setHeading(launch_data.heading, launch_data.absolute_heading)
         this.ship.setMaxAcceleration(launch_data.max_accel)
         this.ship.setThrottle(launch_data.throttle)
+        this.ship.setTime(t)
+        if (launch_data.mission_time) {
+          this.ship.setLaunchTime(t.minus(launch_data.mission_time))
+        }
+
         this.initObservers()
-        if (launch_data.target) this.ship.setTarget(launch_data.target)
+        this.simulator.addBody(this.ship)
 
         this.simulator.unobserve('before:stepBodies', conditional_activate)
         this.notifyObservers('after:blastOff', this.ship)
         this.focusOnShip()
       }.bind(this)
 
-      this.simulator.observe('before:stepBodies', function(_tick_size, t) {
-        if (this.timestamp.lt(t)) activate(t)
-      }.bind(this))
+      this.simulator.observe('before:stepBodies', conditional_activate)
 
       return this
     }

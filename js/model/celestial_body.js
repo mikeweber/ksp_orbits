@@ -48,31 +48,100 @@
     }
 
     klass.prototype.getOrbitalPeriod = function() {
-      return this.getSemiMajorAxis().toPower(3).dividedBy(this.mu).sqrt().times('' + (2 * Math.PI))
+      return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times('' + (2 * Math.PI))
     }
 
     klass.prototype.getSemiMajorAxis = function() {
-      // TODO: figure this out
-      return new Decimal(1000)
+      var orbital_params = this.calcOrbitalParams()
+      return orbital_params.pe.plus(orbital_params.ap).dividedBy(2)
     }
 
-    klass.prototype.getArgumentOfPeriapsis = function(t) {
-      return this.pos.phi.minus('' + this.getMeanAnomoly(t))
+    klass.prototype.calcOrbitalParams = function() {
+      // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
+      var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
+          tmp = C.toPower(2).minus(
+            new Decimal(1).minus(C).times(4).times(
+              new Decimal('' + Math.sin(this.getGamma())).toPower(2).times(-1)
+            )
+          ).sqrt(),
+          den = new Decimal(1).minus(C).times(2),
+          r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
+          r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
+          ap  = new Decimal('' + Math.max(r1, r2)),
+          pe  = new Decimal('' + Math.min(r1, r2))
+
+      return { ap: ap, pe: pe }
     }
 
-    klass.prototype.getMeanAnomoly = function(t) {
-      var common   = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.getParent().mu),
-          prograde = this.getPrograde()
-      return Math.atan2(common.times('' + Math.cos(prograde)).times('' + Math.sin(prograde)), common.times('' + (Math.cos(prograde) ^ 2)).minus(1))
+    klass.prototype.getArgumentOfPeriapsis = function() {
+      var one   = new Decimal(1),
+          a     = this.getSemiMajorAxis(),
+          e     = this.getEccentricity(),
+          r     = this.pos.r,
+          theta = Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
+
+      if (this.getGamma().lt(0)) theta = -theta
+
+      return this.pos.phi.minus('' + theta)
     }
 
-    klass.prototype.getInitMeanAnomoly = function() {
+    klass.prototype.getTrueAnomaly = function() {
+      return this.pos.phi
+    }
+
+    klass.prototype.getEccentricAnomaly = function(M, e, guess, tries) {
+      if (typeof e === 'undefined') e = this.getEccentricity()
+      if (typeof guess === 'undefined') guess = M
+      if (typeof tries === 'undefined') tries = 1
+
+      var anom = guess.minus(guess.minus(M.plus(e.times('' + Math.sin(guess)))).dividedBy(new Decimal(1).minus(e.times('' + Math.cos(guess)))))
+      if (tries > 30 || anom.minus(guess).abs().lt(0.0001)) {
+        return anom
+      } else {
+        return this.getEccentricAnomaly(M, e, anom, tries + 1)
+      }
+    }
+
+    klass.prototype.getPositionAtTime = function(t) { 
+      var one  = new Decimal(1),
+          M    = this.getMeanAnomaly(t),
+          a    = this.getSemiMajorAxis(),
+          e    = this.getEccentricity(),
+          S    = new Decimal('' + Math.sin(-M)),
+          C    = new Decimal('' + Math.cos(-M)),
+          phi  = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
+          r    = a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(phi)))))
+
+      return { r: r, phi: phi }
+    }
+
+    klass.prototype.getMeanAnomaly = function(t) {
+      return this.getInitMeanAnomaly().plus(this.getMeanMotion().times(t))
+    }
+
+    klass.prototype.getMeanMotion = function() {
+      return this.getSystemMu().dividedBy(this.getSemiMajorAxis().toPower(3)).sqrt()
+    }
+
+    klass.prototype.getInitMeanAnomaly = function() {
       return this.m
+    }
+
+    klass.prototype.getSystemMu = function() {
+      return this.mu.plus(this.getParentMu())
+    }
+
+    klass.prototype.getParentMu = function() {
+      return this.parent.mu
     }
 
     klass.prototype.setTime = function(t) {
       this.launch_time = new Decimal(t)
       this.t = new Decimal(t)
+    }
+
+    klass.prototype.setLaunchTime = function(time) {
+      this.launch_time = time
     }
 
     klass.prototype.getLaunchTime = function() {
@@ -152,7 +221,16 @@
     }
 
     klass.prototype.getEccentricity = function() {
-      return this.e
+      // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
+      var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
+          p2 = new Decimal('' + Math.sin(this.getGamma())).toPower(2),
+          p3 = new Decimal('' + Math.cos(this.getGamma())).toPower(2)
+
+      return p1.times(p2).plus(p3).sqrt()
+    }
+
+    klass.prototype.getGamma = function() {
+      return this.getPrograde().minus(this.pos.phi)
     }
 
     klass.prototype.getParentCoordinates = function() {

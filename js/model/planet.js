@@ -4,30 +4,19 @@
   'use strict'
 
   namespace.Planet = (function() {
-    var klass = function Planet(name, radius, mu,    semimajor_axis, anomoly, e, soi) {
-      var pos = { r: semimajor_axis, phi: anomoly }
+    var klass = function Planet(name, radius, mu,    semimajor_axis, anomaly, e, soi) {
+      var pos = { r: semimajor_axis, phi: anomaly }
       this.initializeParameters(name, radius, mu, 0, semimajor_axis, pos, e, Math.PI / 2)
       this.soi             = new Decimal(soi)
       this.inner_soi_bb    = this.soi.toPower(2).dividedBy(2).sqrt()
       this.radius_inner_bb = this.getRadius().toPower(2).dividedBy(2).sqrt()
-      if (this.getOrbitalPeriod().lt(WEEK * 4)) {
-        this.breadcrumb_delta
-      }
     }
 
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
     klass.prototype.constructor = klass
 
     klass.prototype.step = function(t, dt) {
-      var one  = new Decimal(1),
-          M    = this.getMeanAnomoly(t),
-          e    = this.getEccentricity(),
-          anom = M.plus(e.times(2).times('' + Math.sin(M))).plus(new Decimal(1.25).times(e.toPower(2)).times('' + Math.sin(M.times(2)))),
-          S    = new Decimal('' + Math.sin(-M)),
-          C    = new Decimal('' + Math.cos(-M)),
-          phi  = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
-          r    = this.a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(anom)))))
-      this.pos = { r: r, phi: phi }
+      this.pos = this.getPositionAtTime(t)
       this.dropBreadcrumb(t)
     }
 
@@ -36,7 +25,7 @@
     }
 
     klass.prototype.getVelocity = function(t) {
-      return this.parent.mu.plus(this.mu).times(new Decimal(2).dividedBy(this.getDistanceFromParent()).minus(new Decimal(1).dividedBy(this.getSemiMajorAxis()))).sqrt()
+      return this.getSystemMu().times(new Decimal(2).dividedBy(this.getDistanceFromParent()).minus(new Decimal(1).dividedBy(this.getSemiMajorAxis()))).sqrt()
     }
 
     klass.prototype.getDistanceFromParent = function() {
@@ -47,8 +36,8 @@
       return this.e
     }
 
-    klass.prototype.getMeanAnomoly = function(t) {
-      return this.mu.plus(this.parent.mu).dividedBy(this.a.toPower(3)).sqrt().times(t).plus('' + this.getInitMeanAnomoly())
+    klass.prototype.getMeanMotion = function(t) {
+      return this.mu.plus(this.parent.mu).dividedBy(this.getSemiMajorAxis().toPower(3)).sqrt()
     }
 
     klass.prototype.calcOrbitalParams = function() {

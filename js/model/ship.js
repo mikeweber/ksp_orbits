@@ -95,7 +95,7 @@
     }
 
     klass.prototype.setVelocity = function(vel) {
-      this.v = vel
+      this.v = new Decimal(vel)
     }
 
     klass.prototype.setPostion = function(pos) {
@@ -103,7 +103,7 @@
     }
 
     klass.prototype.setPrograde = function(prograde) {
-      this.prograde = prograde
+      this.prograde = new Decimal('' + prograde)
     }
 
     klass.prototype.setHeading = function(heading, use_absolute) {
@@ -218,39 +218,17 @@
       }
     }
 
-    klass.prototype.getEccentricity = function() {
-      // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
-      var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
-          p2 = new Decimal('' + Math.sin(this.getGamma())).toPower(2),
-          p3 = new Decimal('' + Math.cos(this.getGamma())).toPower(2)
+    klass.prototype.getMeanAnomaly = function(t) {
+      var E = this.getEccentricAnomaly(t),
+          e = this.getEccentricity()
 
-      return p1.times(p2).plus(p3).sqrt()
+      return E.minus(e.times(E))
     }
 
-    klass.prototype.getSemiMajorAxis = function() {
-      var orbital_params = this.calcOrbitalParams()
-      return orbital_params.pe.plus(orbital_params.ap).dividedBy(2)
-    }
-
-    klass.prototype.calcOrbitalParams = function() {
-      // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
-      var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
-          tmp = C.toPower(2).minus(
-            new Decimal(1).minus(C).times(4).times(
-              new Decimal('' + Math.sin(this.getGamma())).toPower(2).times(-1)
-            )
-          ).sqrt(),
-          den = new Decimal(1).minus(C).times(2),
-          r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
-          r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
-          ap  = new Decimal('' + Math.max(r1, r2)),
-          pe  = new Decimal('' + Math.min(r1, r2))
-
-      return { ap: ap, pe: pe }
-    }
-
-    klass.prototype.getGamma = function() {
-      return this.getPrograde().minus(this.pos.phi)
+    klass.prototype.getEccentricAnomaly = function(t) {
+      var e   = this.getEccentricity(),
+          phi = this.pos.phi
+      return new Decimal(1).minus(e.toPower(2)).sqrt().times('' + Math.sin(phi)).dividedBy(e.plus('' + Math.cos(phi)))
     }
 
     return klass

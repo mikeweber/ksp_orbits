@@ -58,8 +58,8 @@
       context.shadowOffsetX = 1
       context.shadowOffsetY = 1
       context.shadowBlur    = 1
-      context.restore()
       this.print(this.body.name, coords.x, coords.y)
+      context.restore()
     }
 
     klass.prototype.getRadiusForRendering = function() {
