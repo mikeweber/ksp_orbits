@@ -2,10 +2,10 @@
 
 var start_time = 0
 // for Duna Intercept
-//start_time = 1.88719e7
+start_time = 1.88719e7
 
 // for Duna approach
-start_time = 1.9252e7
+//start_time = 1.9252e7
 
 // for Duna return
 //start_time = null
@@ -13,9 +13,9 @@ var player = initUniverse()
 player.zoomTo(new Decimal(200))
 player.run()
 addListeners(jQuery, player)
-//runDunaIntercept(player, jQuery)
+runDunaIntercept(player, jQuery)
 //runFlightBack(player, jQuery)
-runDunaApproach(player, jQuery)
+//runDunaApproach(player, jQuery)
 
 function followShipAndTarget(ship, final_target, player) {
   'use strict'
@@ -186,9 +186,6 @@ function runDunaIntercept(player, $) {
   })
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Matching velocity and vector with planet')
-  })
-  plan.addManeuver(function(t, ship) { return player.sim.t.greaterThan(1.9252e7) }, 0, false, 0).done(function(status_tracker) {
-    player.togglePaused()
   })
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.18e5) }, 0, false, 0).done(function(status_tracker) {
     status_tracker.setMessage('Waiting for intercept...')
