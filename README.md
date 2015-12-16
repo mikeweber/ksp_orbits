@@ -1,5 +1,6 @@
 # KSP Orbits
-A 2D [Kerbal Space Program](http://kerbalspaceprogram.com) simulator that is useful for calculating continuous burns and planet interceptions in KSP
+A 2D [Kerbal Space Program](http://kerbalspaceprogram.com) simulator that is useful for calculating continuous burns and planet interceptions in KSP.
+[Preview](https://rawgit.com/mikeweber/ksp_orbits/master/index.html)
 
 ## FEATURES
 * Simulates orbits of Kerbin, Duna and their respective moons
