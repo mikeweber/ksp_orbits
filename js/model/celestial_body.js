@@ -77,10 +77,10 @@
       var theta = this.getTrueAnomaly(),
           pro   = this.getPrograde(),
           phi   = this.pos.phi,
-          diff  = phi.minus(pro).plus('' + Math.PI).mod('' + 2 * Math.PI).minus('' + Math.PI),
-          qrt   = new Decimal('' + Math.PI / 2)
+          diff  = ((phi - pro + Math.PI) % (2 * Math.PI) - Math.PI),
+          qrt   = Math.PI / 2
 
-      if (-qrt <=  diff && diff <= qrt) theta = -theta
+      if (-qrt <= diff && diff <= qrt) theta = -theta
 
       return this.pos.phi.minus('' + theta)
     }
