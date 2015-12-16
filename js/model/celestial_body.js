@@ -74,19 +74,25 @@
     }
 
     klass.prototype.getArgumentOfPeriapsis = function() {
+      var theta = this.getTrueAnomaly(),
+          pro   = this.getPrograde(),
+          phi   = this.pos.phi,
+          diff  = phi.minus(pro).plus('' + Math.PI).mod('' + 2 * Math.PI).minus('' + Math.PI),
+          qrt   = new Decimal('' + Math.PI / 2)
+
+      if (-qrt <=  diff && diff <= qrt) theta = -theta
+
+      return this.pos.phi.minus('' + theta)
+    }
+
+    klass.prototype.getTrueAnomaly = function() {
       var one   = new Decimal(1),
           a     = this.getSemiMajorAxis(),
           e     = this.getEccentricity(),
           r     = this.pos.r,
           theta = Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
 
-      if (this.getGamma().lt(0)) theta = -theta
-
-      return this.pos.phi.minus('' + theta)
-    }
-
-    klass.prototype.getTrueAnomaly = function() {
-      return this.pos.phi
+      return theta
     }
 
     klass.prototype.getEccentricAnomaly = function(M, e, guess, tries) {
