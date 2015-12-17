@@ -2,7 +2,7 @@
 
 var start_time = 0
 // for Duna Intercept
-start_time = 1.88719e7
+start_time = 1.87319e7
 
 // for Duna approach
 //start_time = 1.9252e7
@@ -13,7 +13,7 @@ var player = initUniverse()
 player.zoomTo(new Decimal(200))
 player.run()
 addListeners(jQuery, player)
-runDunaIntercept(player, jQuery)
+runDunaIntercept(player, 'Duna Mission', 1.8732e7, jQuery)
 //runFlightBack(player, jQuery)
 //runDunaApproach(player, jQuery)
 
@@ -44,7 +44,7 @@ function followShipAndTarget(ship, final_target, player) {
       }
     }
 
-    zoom = new Decimal('' + Math.min(player.renderer.world_size.width.dividedBy('' + dist_x), player.renderer.world_size.height.dividedBy('' + dist_y))).times(0.8)
+    zoom = new Decimal(Math.min(player.renderer.world_size.width.dividedBy(dist_x), player.renderer.world_size.height.dividedBy(dist_y))).times(0.8)
     if (zoom.lt(closest_zoom)) {
       player.renderer.zoomTo(zoom)
     }
@@ -148,13 +148,13 @@ function runFlightBack(player, $) {
   }
 }
 
-function runDunaIntercept(player, $) {
+function runDunaIntercept(player, name, launch_time, $) {
   'use strict'
 
   var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin')
   $('#status').append(stat.getPanel())
 
-  var plan = new FlightPlanner.Model.FlightPlan(player, 'Duna Mission', stat, 1.8872e7).scheduleLaunchFromPlanet(
+  var plan = new FlightPlanner.Model.FlightPlan(player, name, stat, launch_time).scheduleLaunchFromPlanet(
     player.sim.getBody('Kerbin'),
     70000,
     {
@@ -181,13 +181,13 @@ function runDunaIntercept(player, $) {
     followShipAndTarget(ship, player.sim.getBody('Duna'), player)
   })
 
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.03e5) }, Math.PI, false, 1).done(function(status_tracker) {
     status_tracker.setMessage('Decelerating on approach to Duna')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.9e5) }, player.sim.getBody('Duna').getPrograde().plus((-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Matching velocity and vector with planet')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.18e5) }, 0, false, 0).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(status_tracker) {
     status_tracker.setMessage('Waiting for intercept...')
   })
   plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.727, true, 1).done(function(status_tracker) {
@@ -261,7 +261,7 @@ function runDunaApproach(player, $) {
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.01e5) }, Math.PI, false, 1).done(function(status_tracker) {
     status_tracker.setMessage('Decelerating on approach to Duna')
   })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus('' + (-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.88e5) }, player.sim.getBody('Duna').getPrograde().plus((-Math.PI * 0.45)), true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Matching velocity and vector with planet')
   })
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.18e5) }, 0, false, 0).done(function(status_tracker) {
