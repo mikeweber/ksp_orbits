@@ -28,7 +28,7 @@
         this.ship.setParent(planet)
         var alt          = planet.getRadius().plus(initial_altitude * 1000),
             v            = planet.mu.times(new Decimal(1).dividedBy(alt)).sqrt(),
-            init_heading = new Decimal('' + (launch_data.initial_angle - Math.PI * 0.5))
+            init_heading = new Decimal(launch_data.initial_angle - Math.PI * 0.5)
         this.ship.setVelocity(v)
         this.ship.setPositionUsingPosition({ r: alt, phi: launch_data.initial_angle })
         this.ship.setPrograde(init_heading)

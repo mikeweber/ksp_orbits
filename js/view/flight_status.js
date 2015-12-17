@@ -65,7 +65,7 @@
       var params = ship.calcOrbitalParams()
       this.updateStat('ap', params.ap.round().dividedBy(1000) + 'km')
       this.updateStat('pe', params.pe.round().dividedBy(1000) + 'km')
-      this.updateStat('gamma', '' + helpers.radianToDegrees(ship.pos.phi.minus(ship.getPrograde())).round())
+      this.updateStat('gamma', helpers.radianToDegrees(ship.pos.phi.minus(ship.getPrograde())).round())
       this.updateStat('ecc', helpers.roundTo(ship.getEccentricity(), 4))
 
       this.last_run = now
@@ -76,7 +76,7 @@
     }
 
     klass.prototype.updateStat = function(panel_id, stat, title) {
-      this.getPanelFor(panel_id).html('' + stat)
+      this.getPanelFor(panel_id).html(stat)
       this.getPanelFor(panel_id).prop('title', title)
     }
 

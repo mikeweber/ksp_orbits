@@ -32,8 +32,8 @@
           coords    = this.convertWorldToCanvas(this.body.getCoordinates()),
           radius    = this.getRadiusForRendering(),
           sun_angle = this.body.sunAngle(),
-          start     = sun_angle.minus('' + Math.PI / 2),
-          end       = sun_angle.plus('' + Math.PI / 2)
+          start     = sun_angle.minus(Math.PI / 2),
+          end       = sun_angle.plus(Math.PI / 2)
       context.save()
       context.beginPath()
       context.arc(coords.x, coords.y, radius, start, end)

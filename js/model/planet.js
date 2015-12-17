@@ -21,7 +21,7 @@
     }
 
     klass.prototype.getPrograde = function() {
-      return this.pos.phi.minus('' + Math.PI / 2)
+      return this.pos.phi.minus(Math.PI / 2)
     }
 
     klass.prototype.getVelocity = function(t) {

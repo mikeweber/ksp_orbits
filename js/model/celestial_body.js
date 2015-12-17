@@ -12,10 +12,10 @@
       this.mu       = new Decimal(mu)
       this.v        = new Decimal(v)
       this.a        = new Decimal(semimajor_axis)
-      this.pos      = { r: new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
-      this.m        = new Decimal('' + this.pos.phi)
+      this.pos      = { r: new Decimal(pos.r), phi: new Decimal(pos.phi) }
+      this.m        = new Decimal(this.pos.phi)
       this.e        = new Decimal(e)
-      this.prograde = new Decimal('' + prograde)
+      this.prograde = new Decimal(prograde)
       this.last_breadcrumb  = 0
       this.breadcrumb_delta = WEEK
       this.trail_length     = 0
@@ -27,7 +27,7 @@
 
     klass.prototype.sunAngle = function() {
       var pos = this.getCoordinates()
-      return new Decimal('' + Math.atan2(pos.y, pos.x))
+      return new Decimal(Math.atan2(pos.y, pos.x))
     }
 
     klass.prototype.addChild = function(child) {
@@ -48,7 +48,7 @@
     }
 
     klass.prototype.getOrbitalPeriod = function() {
-      return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times('' + (2 * Math.PI))
+      return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times((2 * Math.PI))
     }
 
     klass.prototype.getSemiMajorAxis = function() {
@@ -61,14 +61,14 @@
       var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
           tmp = C.toPower(2).minus(
             new Decimal(1).minus(C).times(4).times(
-              new Decimal('' + Math.sin(this.getGamma())).toPower(2).times(-1)
+              new Decimal(Math.sin(this.getGamma())).toPower(2).times(-1)
             )
           ).sqrt(),
           den = new Decimal(1).minus(C).times(2),
           r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
           r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
-          ap  = new Decimal('' + Math.max(r1, r2)),
-          pe  = new Decimal('' + Math.min(r1, r2))
+          ap  = new Decimal(Math.max(r1, r2)),
+          pe  = new Decimal(Math.min(r1, r2))
 
       return { ap: ap, pe: pe }
     }
@@ -82,7 +82,7 @@
 
       if (-qrt <= diff && diff <= qrt) theta = -theta
 
-      return this.pos.phi.minus('' + theta)
+      return this.pos.phi.minus(theta)
     }
 
     klass.prototype.getTrueAnomaly = function() {
@@ -100,7 +100,7 @@
       if (typeof guess === 'undefined') guess = M
       if (typeof tries === 'undefined') tries = 1
 
-      var anom = guess.minus(guess.minus(M.plus(e.times('' + Math.sin(guess)))).dividedBy(new Decimal(1).minus(e.times('' + Math.cos(guess)))))
+      var anom = guess.minus(guess.minus(M.plus(e.times(Math.sin(guess)))).dividedBy(new Decimal(1).minus(e.times(Math.cos(guess)))))
       if (tries > 30 || anom.minus(guess).abs().lt(0.0001)) {
         return anom
       } else {
@@ -113,10 +113,10 @@
           M    = this.getMeanAnomaly(t),
           a    = this.getSemiMajorAxis(),
           e    = this.getEccentricity(),
-          S    = new Decimal('' + Math.sin(-M)),
-          C    = new Decimal('' + Math.cos(-M)),
-          phi  = new Decimal('' + Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
-          r    = a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times('' + Math.cos(phi)))))
+          S    = new Decimal(Math.sin(-M)),
+          C    = new Decimal(Math.cos(-M)),
+          phi  = new Decimal(Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
+          r    = a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times(Math.cos(phi)))))
 
       return { r: r, phi: phi }
     }
@@ -155,11 +155,11 @@
     }
 
     klass.prototype.getHeadingX = function() {
-      return new Decimal('' + Math.cos(this.getHeading()))
+      return new Decimal(Math.cos(this.getHeading()))
     }
 
     klass.prototype.getHeadingY = function() {
-      return new Decimal('' + Math.sin(this.getHeading()))
+      return new Decimal(Math.sin(this.getHeading()))
     }
 
     klass.prototype.getHeading = function() {
@@ -167,11 +167,11 @@
     }
 
     klass.prototype.getProgradeX = function() {
-      return new Decimal('' + Math.cos(this.getPrograde()))
+      return new Decimal(Math.cos(this.getPrograde()))
     }
 
     klass.prototype.getProgradeY = function() {
-      return new Decimal('' + Math.sin(this.getPrograde()))
+      return new Decimal(Math.sin(this.getPrograde()))
     }
 
     klass.prototype.getPrograde = function() {
@@ -189,11 +189,11 @@
     }
 
     klass.prototype.getGravityWellX = function() {
-      return new Decimal('' + Math.cos(this.pos.phi))
+      return new Decimal(Math.cos(this.pos.phi))
     }
 
     klass.prototype.getGravityWellY = function() {
-      return new Decimal('' + Math.sin(this.pos.phi))
+      return new Decimal(Math.sin(this.pos.phi))
     }
 
     klass.prototype.dropBreadcrumb = function(t) {
@@ -229,8 +229,8 @@
     klass.prototype.getEccentricity = function() {
       // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
       var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
-          p2 = new Decimal('' + Math.sin(this.getGamma())).toPower(2),
-          p3 = new Decimal('' + Math.cos(this.getGamma())).toPower(2)
+          p2 = new Decimal(Math.sin(this.getGamma())).toPower(2),
+          p3 = new Decimal(Math.cos(this.getGamma())).toPower(2)
 
       return p1.times(p2).plus(p3).sqrt()
     }

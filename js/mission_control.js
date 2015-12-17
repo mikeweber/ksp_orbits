@@ -4,6 +4,7 @@ var FlightPlanner = {
   Helper: {},
   Controller: {}
 }
+Decimal.config({ errors: false })
 
 const YEAR = 9203545,
       WEEK = 201600,

@@ -22,14 +22,14 @@
           hour   = Math.floor(((t % YEAR) % DAY) / HOUR),
           minute = Math.floor((((t % YEAR) % DAY) % HOUR) / MIN)
       if (day < 100) {
-        if (day < 10) day = '0' + '' + day
-        day = '0' + '' + day
+        if (day < 10) day = '0' + day
+        day = '0' + day
       }
-      if (minute < 10) minute = '0' + '' + minute
+      if (minute < 10) minute = '0' + minute
       return 'Year ' + year + ', Day ' + day + ' ' + hour + ':' + minute
     },
     radianToDegrees: function(rad) {
-      return rad.times(180).dividedBy('' + Math.PI)
+      return rad.times(180).dividedBy(Math.PI)
     },
     roundTo: function(num, dec) {
       if (!num) return null
@@ -49,8 +49,8 @@
     },
     posToCoordinates: function(pos) {
       return {
-        x: pos.r.times('' + Math.cos(pos.phi)),
-        y: pos.r.times('' + Math.sin(pos.phi))
+        x: pos.r.times(Math.cos(pos.phi)),
+        y: pos.r.times(Math.sin(pos.phi))
       }
     }
   }

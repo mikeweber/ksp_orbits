@@ -42,9 +42,9 @@
           mid_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
           mid_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
           mid_coords  = { x: mid_x, y: mid_y },
-          mid_phi     = new Decimal('' + Math.atan2(mid_coords.y, mid_coords.x)),
-          new_g_x     = gravity.times('' + Math.cos(mid_phi)),
-          new_g_y     = gravity.times('' + Math.sin(mid_phi)),
+          mid_phi     = new Decimal(Math.atan2(mid_coords.y, mid_coords.x)),
+          new_g_x     = gravity.times(Math.cos(mid_phi)),
+          new_g_y     = gravity.times(Math.sin(mid_phi)),
           new_accel_x = a_x.plus(new_g_x).times(dt),
           new_accel_y = a_y.plus(new_g_y).times(dt),
           new_x       = old_coords.x.plus(vel_x.times(dt).plus(new_accel_x.times(dt).dividedBy(2))).plus(mid_x).dividedBy(2),
@@ -81,13 +81,13 @@
 
     klass.prototype.setPosition = function(coords) {
       var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
-          phi      = new Decimal('' + Math.atan2(coords.y, coords.x))
+          phi      = new Decimal(Math.atan2(coords.y, coords.x))
 
       this.pos = { 'r': distance, phi: phi }
     }
 
     klass.prototype.setPositionUsingPosition = function(pos) {
-      this.pos = { 'r': new Decimal(pos.r), phi: new Decimal('' + pos.phi) }
+      this.pos = { 'r': new Decimal(pos.r), phi: new Decimal(pos.phi) }
     }
 
     klass.prototype.setParent = function(parent) {
@@ -103,14 +103,14 @@
     }
 
     klass.prototype.setPrograde = function(prograde) {
-      this.prograde = new Decimal('' + prograde)
+      this.prograde = new Decimal(prograde)
     }
 
     klass.prototype.setHeading = function(heading, use_absolute) {
       if (helpers.isBlank(heading)) return
 
       this.use_absolute_heading = use_absolute
-      this.heading = new Decimal('' + heading)
+      this.heading = new Decimal(heading)
     }
 
     klass.prototype.alterVelocity = function(vel_x, vel_y) {
@@ -118,7 +118,7 @@
     }
 
     klass.prototype.alterPrograde = function(vel_x, vel_y) {
-      this.prograde = new Decimal('' + Math.atan2(vel_y, vel_x))
+      this.prograde = new Decimal(Math.atan2(vel_y, vel_x))
     }
 
     klass.prototype.getCoordinates = function() {
@@ -171,10 +171,10 @@
           s_vel      = ship.getVelocity(),
           p_pro      = new_parent.getPrograde(),
           s_pro      = ship.getPrograde(),
-          p_vel_x    = p_vel.times('' + Math.cos(p_pro)),
-          p_vel_y    = p_vel.times('' + Math.sin(p_pro)),
-          s_vel_x    = s_vel.times('' + Math.cos(s_pro)),
-          s_vel_y    = s_vel.times('' + Math.sin(s_pro)),
+          p_vel_x    = p_vel.times(Math.cos(p_pro)),
+          p_vel_y    = p_vel.times(Math.sin(p_pro)),
+          s_vel_x    = s_vel.times(Math.cos(s_pro)),
+          s_vel_y    = s_vel.times(Math.sin(s_pro)),
           vel_x      = s_vel_x.minus(p_vel_x),
           vel_y      = s_vel_y.minus(p_vel_y)
 
@@ -193,10 +193,10 @@
           s_vel      = ship.getVelocity(),
           p_pro      = old_parent.getPrograde(),
           s_pro      = ship.getPrograde(),
-          p_vel_x    = p_vel.times('' + Math.cos(p_pro)),
-          p_vel_y    = p_vel.times('' + Math.sin(p_pro)),
-          s_vel_x    = s_vel.times('' + Math.cos(s_pro)),
-          s_vel_y    = s_vel.times('' + Math.sin(s_pro)),
+          p_vel_x    = p_vel.times(Math.cos(p_pro)),
+          p_vel_y    = p_vel.times(Math.sin(p_pro)),
+          s_vel_x    = s_vel.times(Math.cos(s_pro)),
+          s_vel_y    = s_vel.times(Math.sin(s_pro)),
           vel_x      = p_vel_x.plus(s_vel_x),
           vel_y      = p_vel_y.plus(s_vel_y)
 
@@ -228,7 +228,7 @@
     klass.prototype.getEccentricAnomaly = function(t) {
       var e   = this.getEccentricity(),
           phi = this.pos.phi
-      return new Decimal(1).minus(e.toPower(2)).sqrt().times('' + Math.sin(phi)).dividedBy(e.plus('' + Math.cos(phi)))
+      return new Decimal(1).minus(e.toPower(2)).sqrt().times(Math.sin(phi)).dividedBy(e.plus(Math.cos(phi)))
     }
 
     return klass
