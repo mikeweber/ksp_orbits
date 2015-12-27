@@ -61,7 +61,7 @@
       var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
           tmp = C.toPower(2).minus(
             new Decimal(1).minus(C).times(4).times(
-              new Decimal(Math.sin(this.getGamma())).toPower(2).times(-1)
+              new Decimal(Math.sin(this.getZenithAngle())).toPower(2).times(-1)
             )
           ).sqrt(),
           den = new Decimal(1).minus(C).times(2),
@@ -73,24 +73,17 @@
       return { ap: ap, pe: pe }
     }
 
-    klass.prototype.getArgumentOfPeriapsis = function() {
-      var theta = this.getTrueAnomaly(),
-          pro   = this.getPrograde(),
-          phi   = this.pos.phi,
-          diff  = ((phi - pro + Math.PI) % (2 * Math.PI) - Math.PI),
-          qrt   = Math.PI / 2
-
-      if (-qrt <= diff && diff <= qrt) theta = -theta
-
-      return this.pos.phi.minus(theta)
+    klass.prototype.getArgumentOfPeriapsis = function(t) {
+      return this.pos.phi.plus(this.getTrueAnomaly(t))
     }
 
-    klass.prototype.getTrueAnomaly = function() {
+    klass.prototype.getTrueAnomaly = function(t) {
       var one   = new Decimal(1),
           a     = this.getSemiMajorAxis(),
           e     = this.getEccentricity(),
           r     = this.pos.r,
           theta = Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
+      if ((this.getMeanAnomaly(t) % (2 * Math.PI)) >= Math.PI) theta = -theta
 
       return theta
     }
@@ -174,10 +167,6 @@
       return new Decimal(Math.sin(this.getPrograde()))
     }
 
-    klass.prototype.getPrograde = function() {
-      return this.prograde
-    }
-
     klass.prototype.getLocalCoordinates = function() {
       return helpers.posToCoordinates(this.pos)
     }
@@ -229,14 +218,18 @@
     klass.prototype.getEccentricity = function() {
       // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
       var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
-          p2 = new Decimal(Math.sin(this.getGamma())).toPower(2),
-          p3 = new Decimal(Math.cos(this.getGamma())).toPower(2)
+          p2 = new Decimal(Math.sin(this.getZenithAngle())).toPower(2),
+          p3 = new Decimal(Math.cos(this.getZenithAngle())).toPower(2)
 
       return p1.times(p2).plus(p3).sqrt()
     }
 
-    klass.prototype.getGamma = function() {
+    klass.prototype.getZenithAngle = function() {
       return this.getPrograde().minus(this.pos.phi)
+    }
+
+    klass.prototype.getPrograde = function() {
+      return this.prograde
     }
 
     klass.prototype.getParentCoordinates = function() {
