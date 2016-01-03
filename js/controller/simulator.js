@@ -79,17 +79,21 @@
     }
 
     klass.prototype.faster = function() {
-      if (this.tick_size < 10000) {
-        this.tick_size *= 2
-        if (this.tick_size > 10000) this.tick_size = 10000
-      }
+      this.setTickSize(this.tick_size * 2)
     }
 
     klass.prototype.slower = function() {
-      if (this.tick_size > 1) {
-        this.tick_size *= 0.5
-        if (this.tick_size < 1) this.tick_size = 1
-      }
+      this.setTickSize(this.tick_size * 0.5)
+    }
+
+    klass.prototype.setTickSize = function(tick) {
+      if (tick < 1) tick = 1
+      if (tick > 10000) tick = 10000
+      this.tick_size = tick
+    }
+
+    klass.prototype.getTickSize = function() {
+      return this.tick_size
     }
 
     klass.prototype.togglePaused = function() {
