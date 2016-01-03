@@ -32,10 +32,6 @@
       return this.e
     }
 
-    klass.prototype.getMeanMotion = function(t) {
-      return this.mu.plus(this.parent.mu).dividedBy(this.getSemiMajorAxis().toPower(3)).sqrt()
-    }
-
     klass.prototype.calcOrbitalParams = function() {
       var ae = this.e.times(this.getSemiMajorAxis()),
           pe = this.getSemiMajorAxis().minus(ae),
