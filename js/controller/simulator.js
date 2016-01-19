@@ -5,11 +5,13 @@
 
   namespace.Simulator = (function() {
     var klass = function Simulator(time, bodies, tick_size, debug) {
-      this.setTime(time)
       this.setBodies(bodies)
-      this.tick_size = tick_size
-      this.running   = false
-      this.debugger  = debug
+      this.initial_tick = tick_size
+      this.initial_time = time
+      this.setTime(time)
+      this.tick_size    = tick_size
+      this.running      = false
+      this.debugger     = debug
     }
 
     klass.prototype.setTime = function(time) {
@@ -102,6 +104,11 @@
 
     klass.prototype.getKerbalDate = function() {
       return helpers.convertTimeToDate(this.t)
+    }
+
+    klass.prototype.reset = function() {
+      this.setTime(this.initial_time)
+      this.tick_size = this.initial_tick
     }
 
     makeObservable(klass)

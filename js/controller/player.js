@@ -23,6 +23,7 @@
       this.slowDown      = sim.slower.bind(sim)
       this.trackNext     = renderer.trackNext.bind(renderer)
       this.trackPrev     = renderer.trackPrev.bind(renderer)
+      this.reset         = sim.reset.bind(sim)
     }
 
     makeObservable(klass)

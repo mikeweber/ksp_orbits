@@ -62,9 +62,8 @@
       this.updateStat('phi', helpers.radianToDegrees(ship.pos.phi).round())
       this.updateStat('heading', helpers.radianToDegrees(ship.heading).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
       this.updateStat('message', this.getMessage())
-      var params = ship.calcOrbitalParams()
-      this.updateStat('ap', params.ap.round().dividedBy(1000) + 'km')
-      this.updateStat('pe', params.pe.round().dividedBy(1000) + 'km')
+      this.updateStat('ap', ship.getApoapsis().round().dividedBy(1000) + 'km')
+      this.updateStat('pe', ship.getPeriapsis().round().dividedBy(1000) + 'km')
       this.updateStat('gamma', helpers.radianToDegrees(ship.pos.phi.minus(ship.getPrograde())).round())
       this.updateStat('ecc', helpers.roundTo(ship.getEccentricity(), 4))
 

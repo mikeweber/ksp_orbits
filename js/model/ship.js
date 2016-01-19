@@ -1,10 +1,11 @@
 /* global FlightPlanner Decimal Object jQuery */
 
-(function(namespace, helpers, makeObservable) {
+(function(namespace, helpers, makeObservable, calculators) {
   'use strict'
 
   namespace.Ship = (function() {
     var klass = function Ship(  name, radius,               v,    pos,    prograde, heading, absolute_heading) {
+      this.setMotionCalculator(calculators.acceleration)
       this.initializeParameters(name, radius, 0, v, 0, pos, 0, prograde)
       this.setHeading(heading, absolute_heading)
       this.breadcrumb_delta  = DAY
@@ -36,8 +37,8 @@
           a_y         = this.getAcceleration().times(this.getHeadingY()),
           accel_x     = a_x.plus(g_x).times(dt),
           accel_y     = a_y.plus(g_y).times(dt),
-          vel_x       = this.v.times(this.getProgradeX()),
-          vel_y       = this.v.times(this.getProgradeY()),
+          vel_x       = this.v.times(this.getProgradeX(t)),
+          vel_y       = this.v.times(this.getProgradeY(t)),
           old_coords  = this.getLocalCoordinates(),
           mid_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
           mid_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
@@ -70,13 +71,34 @@
     klass.prototype.setThrottle = function(throttle) {
       if (helpers.isBlank(throttle)) return
 
+      var prevThrottle = this.throttle
       if (throttle < 0) throttle = 0
       if (throttle > 1) throttle = 1
+      if (prevThrottle !== throttle) {
+        if (throttle === 0) {
+          this.useMomentumCalculator(this.t)
+        } else {
+          this.useAcceleratingCalculator(this.t)
+        }
+      }
       this.throttle = throttle
     }
 
     klass.prototype.getThrottle = function() {
       return this.throttle
+    }
+
+    klass.prototype.useMomentumCalculator = function(t) {
+      this.a = this.getSemiMajorAxis()
+      this.e = this.getEccentricity()
+      this.m = this.getMeanAnomaly().minus(this.getMeanMotion().times(t))
+      this.setMotionCalculator(calculators.momentum)
+    }
+
+    klass.prototype.useAcceleratingCalculator = function(t) {
+      this.prograde = this.getPrograde(t)
+      this.v        = this.getVelocity(t)
+      this.setMotionCalculator(calculators.acceleration)
     }
 
     klass.prototype.setPosition = function(coords) {
@@ -127,14 +149,6 @@
       return { x: pos.x.plus(parent.x), y: pos.y.plus(parent.y) }
     }
 
-    klass.prototype.getHeading = function() {
-      if (this.use_absolute_heading) {
-        return this.heading
-      } else {
-        return this.getPrograde().plus(this.heading)
-      }
-    }
-
     klass.prototype.getRadiusForRendering = function() {
       return 2
     }
@@ -147,12 +161,13 @@
         var bodies = this.parent.getBodiesInSOI()
         for (var i = bodies.length; i--; ) {
           if (bodies[i].isInSOI(this)) {
-            fn = switchToParentSOI
+            fn = switchToChildSOI
             new_parent = bodies[i]
+            i = 1
           }
         }
       } else {
-        fn = switchToChildSOI
+        fn = switchToParentSOI
         new_parent = this.parent.getParent()
       }
       if (!new_parent) return false
@@ -163,14 +178,14 @@
       return true
     }
 
-    function switchToParentSOI(ship, new_parent, t) {
+    function switchToChildSOI(ship, new_parent, t) {
       var old_coords = ship.getLocalCoordinates(),
           p_coords   = new_parent.getLocalCoordinates(),
           new_coords = { x: old_coords.x.minus(p_coords.x), y: old_coords.y.minus(p_coords.y) },
           p_vel      = new_parent.getVelocity(t),
-          s_vel      = ship.getVelocity(),
-          p_pro      = new_parent.getPrograde(),
-          s_pro      = ship.getPrograde(),
+          s_vel      = ship.getVelocity(t),
+          p_pro      = new_parent.getPrograde(t),
+          s_pro      = ship.getPrograde(t),
           p_vel_x    = p_vel.times(Math.cos(p_pro)),
           p_vel_y    = p_vel.times(Math.sin(p_pro)),
           s_vel_x    = s_vel.times(Math.cos(s_pro)),
@@ -182,17 +197,18 @@
       ship.setPosition(new_coords)
       ship.alterPrograde(vel_x, vel_y)
       ship.alterVelocity(vel_x, vel_y)
+      ship.e = getEccentricity(ship, ship.v, ship.prograde.minus(ship.pos.phi))
     }
 
-    function switchToChildSOI(ship, new_parent, t) {
+    function switchToParentSOI(ship, new_parent, t) {
       var old_coords = ship.getLocalCoordinates(),
           p_coords   = ship.parent.getLocalCoordinates(),
           new_coords = { x: p_coords.x.plus(old_coords.x), y: p_coords.y.plus(old_coords.y) },
           old_parent = ship.parent,
           p_vel      = old_parent.getVelocity(t),
-          s_vel      = ship.getVelocity(),
-          p_pro      = old_parent.getPrograde(),
-          s_pro      = ship.getPrograde(),
+          s_vel      = ship.getVelocity(t),
+          p_pro      = old_parent.getPrograde(t),
+          s_pro      = ship.getPrograde(t),
           p_vel_x    = p_vel.times(Math.cos(p_pro)),
           p_vel_y    = p_vel.times(Math.sin(p_pro)),
           s_vel_x    = s_vel.times(Math.cos(s_pro)),
@@ -204,6 +220,16 @@
       ship.setPosition(new_coords)
       ship.alterPrograde(vel_x, vel_y)
       ship.alterVelocity(vel_x, vel_y)
+      ship.e = getEccentricity(ship, ship.v, ship.prograde.minus(ship.pos.phi))
+    }
+
+    function getEccentricity(ship, v, zenith) {
+      // Equation 4.30 from http://www.braeunig.us/space/orbmech.htm
+      var p1  = ship.pos.r.times(v.toPower(2)).dividedBy(ship.parent.mu).minus(1).toPower(2),
+          p2  = new Decimal(Math.sin(zenith)).toPower(2),
+          p3  = new Decimal(Math.cos(zenith)).toPower(2)
+
+      return p1.times(p2).plus(p3).sqrt()
     }
 
     klass.prototype.alertSOIChange = function(new_parent, t) {
@@ -218,19 +244,6 @@
       }
     }
 
-    klass.prototype.getMeanAnomaly = function(t) {
-      var E = this.getEccentricAnomaly(t),
-          e = this.getEccentricity()
-
-      return E.minus(e.times(E))
-    }
-
-    klass.prototype.getEccentricAnomaly = function(t) {
-      var e   = this.getEccentricity(),
-          phi = this.pos.phi
-      return new Decimal(1).minus(e.toPower(2)).sqrt().times(Math.sin(phi)).dividedBy(e.plus(Math.cos(phi)))
-    }
-
     return klass
   })()
-})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)
+})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable, { momentum: FlightPlanner.Model.MomentumBody, acceleration: FlightPlanner.Model.AcceleratingBody })

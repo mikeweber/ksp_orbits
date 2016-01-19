@@ -194,24 +194,43 @@ function runDunaIntercept(player, name, launch_time, $) {
     status_tracker.setMessage('Left Kerbin SOI; setting course')
   })
   plan.addSOIChangeManeuver(player.sim.getBody('Duna'), Math.PI, false, 1).done(function(status_tracker, ship, t) {
-    var i, soi_change_time = t
-    status_tracker.setMessage('Near destination; attempting to get captured')
+    var i, soi_change_time = t, orig_tick_size = player.sim.getTickSize()
+    status_tracker.setMessage('Near destination; Reverse thrusters full in attempt to get captured')
 
-    plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(status_tracker) {
-      status_tracker.setMessage('Capture complete; Shutting down engines')
+    plan.addManeuver(function(t, ship) { var e = ship.getEccentricity(); return e > 0 && e < 1 }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
+      status_tracker.setMessage('Elliptical orbit achieved. Slowing simulation for better accuracy')
+      player.sim.setTickSize(1)
 
-      plan.addManeuver(function(t, ship) { return ship.pos.r.minus(500).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
-        status_tracker.setMessage('Lowering periapsis and circularizing orbit')
+      plan.addManeuver(function(t, ship) { var pe = ship.getPeriapsis(); return pe.gt(0) && pe.lt(4.4e6) }, 0, false, 0).done(function(status_tracker) {
+        status_tracker.setMessage('First capture complete; Waiting for periapsis')
+        player.sim.setTickSize(orig_tick_size)
+        var time_of_pe = t.plus(ship.getOrbitalPeriod().times((1 - (ship.getMeanAnomaly(t).plus(Math.PI)) / (2 * Math.PI)) % 1))
 
-        plan.addManeuver(function(t, ship) { return ship.calcOrbitalParams().pe.lt(500000) }, 0, false, 0).done(function(status_tracker) {
-          status_tracker.setMessage('Waiting to reach parking orbit')
+        plan.addManeuver(function(t, ship) { return time_of_pe.lt(t.plus(player.sim.getTickSize())) }, -Math.PI, false, 1).done(function(status_tracker) {
+          var orig_tick_size = player.sim.getTickSize()
+          player.sim.setTickSize(1)
+          status_tracker.setMessage('Slowing sim; waiting for periapsis.')
 
-          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(35000).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
-            status_tracker.setMessage('Circularizing orbit...')
+          plan.addManeuver(function(t, ship) { return time_of_pe.lt(t) }, -Math.PI, false, 1).done(function(status_tracker) {
+            status_tracker.setMessage('Lowering orbit again')
 
-            // Circular orbit at 600km from center of Duna has a velocity of 818 m/s
-            plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(820) }, 0, false, 0).done(function(status_tracker) {
-              status_tracker.setMessage('Parking orbit reached')
+            plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker) {
+              var time_of_pe2 = t.plus(ship.getOrbitalPeriod().times((2 * Math.PI - ship.getClampedMeanAnomaly(t)) / (2 * Math.PI)))
+              status_tracker.setMessage('Second step of capture complete; Waiting for periapsis.')
+              player.sim.setTickSize(orig_tick_size)
+              plan.addManeuver(function(t, ship) { return time_of_pe2.lt(t.plus(player.sim.getTickSize())) }, Math.PI, false, 1).done(function(status_tracker) {
+                var orig_tick_size2 = player.sim.getTickSize()
+                player.sim.setTickSize(1)
+                status_tracker.setMessage('Slowing sim; waiting for periapsis.')
+
+                plan.addManeuver(function(t, ship) { return time_of_pe2.lt(t) }, Math.PI, false, 1).done(function(status_tracker) {
+                  status_tracker.setMessage('Final parking orbit maneuver.')
+                  plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker) {
+                    player.sim.setTickSize(orig_tick_size)
+                    status_tracker.setMessage('Parking orbit reached on ' + player.sim.getKerbalDate() + '. (t+ ' + t + ')')
+                  })
+                })
+              })
             })
           })
         })
@@ -277,13 +296,13 @@ function runDunaApproach(player, $) {
     plan.addManeuver(function(t, ship) { return ship.getVelocity().lt(ship.parent.mu.times(new Decimal(1).dividedBy(ship.pos.r)).sqrt()) }, 0, false, 0).done(function(status_tracker) {
       status_tracker.setMessage('Capture complete; Shutting down engines')
 
-      plan.addManeuver(function(t, ship) { return ship.pos.r.minus(500).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+      plan.addManeuver(function(t, ship) { return ship.pos.r.minus(500).lt(ship.getPeriapsis()) }, -Math.PI, false, 1).done(function(status_tracker) {
         status_tracker.setMessage('Lowering periapsis and circularizing orbit')
 
-        plan.addManeuver(function(t, ship) { return ship.calcOrbitalParams().pe.lt(500000) }, 0, false, 0).done(function(status_tracker) {
+        plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker) {
           status_tracker.setMessage('Waiting to reach parking orbit')
 
-          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(35000).lt(ship.calcOrbitalParams().pe) }, -Math.PI, false, 1).done(function(status_tracker) {
+          plan.addManeuver(function(t, ship) { return ship.pos.r.minus(35000).lt(ship.getPeriapsis()) }, -Math.PI, false, 1).done(function(status_tracker) {
             status_tracker.setMessage('Circularizing orbit...')
 
             // Circular orbit at 600km from center of Duna has a velocity of 818 m/s
@@ -307,6 +326,7 @@ function addListeners($, player) {
   $('#slower').on(     'click', function() { player.execute('slowDown') })
   $('#prev_target').on('click', function() { player.execute('trackPrev') })
   $('#next_target').on('click', function() { player.execute('trackNext') })
+  $('#reset').on(      'click', function() { player.execute('reset') })
   $(window).on('keyup', function(e) {
     var key = e.keyCode ? e.keyCode : e.which
 

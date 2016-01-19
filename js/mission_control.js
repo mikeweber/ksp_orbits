@@ -6,6 +6,7 @@ var FlightPlanner = {
 }
 Decimal.config({ errors: false })
 
+Math.PI2 = 2 * Math.PI
 const YEAR = 9203545,
       WEEK = 201600,
       DAY  = 21600,

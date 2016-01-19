@@ -1,11 +1,12 @@
 /* global FlightPlanner Decimal Object */
 
-(function(namespace){
+(function(namespace, calculator){
   'use strict'
 
   namespace.Sun = (function() {
     var zero = new Decimal(0)
     var klass = function Sun(mu, radius) {
+      this.setMotionCalculator(calculator)
       this.initializeParameters('Kerbol', radius, mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
     }
 
@@ -22,11 +23,12 @@
     klass.prototype.parentIsSun       = function() { return true }
     klass.prototype.getSun            = function() { return this }
     klass.prototype.hasShadow         = function() { return false }
-    klass.prototype.calcOrbitalParams = function() { return { pe: zero, ap: zero } }
+    klass.prototype.getPeriapsis      = function() { return zero }
+    klass.prototype.getApoapsis       = function() { return zero }
     klass.prototype.getEccentricity   = function() { return zero }
     klass.prototype.getMeanMotion     = function() { return zero }
     klass.prototype.getParentMu       = function() { return zero }
 
     return klass
   })()
-})(FlightPlanner.Model)
+})(FlightPlanner.Model, FlightPlanner.Model.MomentumBody)

@@ -1,26 +1,49 @@
 /* global Decimal FlightPlanner */
+var last = {};
 
-(function(namespace, helpers, makeObservable) {
+(function(namespace, helpers, makeObservable, calculators) {
   'use strict'
 
   namespace.CelestialBody = (function() {
     var klass = function CelestialBody() {}
 
     klass.prototype.initializeParameters = function(name, radius, mu, v, semimajor_axis, pos, e, prograde) {
-      this.name     = name
-      this.radius   = new Decimal(radius)
-      this.mu       = new Decimal(mu)
-      this.v        = new Decimal(v)
-      this.a        = new Decimal(semimajor_axis)
-      this.pos      = { r: new Decimal(pos.r), phi: new Decimal(pos.phi) }
-      this.m        = new Decimal(this.pos.phi)
-      this.e        = new Decimal(e)
-      this.prograde = new Decimal(prograde)
+      this.name             = name
+      this.radius           = new Decimal(radius)
+      this.mu               = new Decimal(mu)
+      this.v                = new Decimal(v)
+      this.a                = new Decimal(semimajor_axis)
+      this.pos              = { r: new Decimal(pos.r), phi: new Decimal(pos.phi) }
+      this.m                = new Decimal(this.pos.phi)
+      this.e                = new Decimal(e)
+      this.prograde         = new Decimal(prograde)
       this.last_breadcrumb  = 0
       this.breadcrumb_delta = WEEK
       this.trail_length     = 0
       this.breadcrumbs      = []
       this.bodies_in_soi    = []
+    }
+
+    klass.prototype.setMotionCalculator = function(calc) {
+      for (var x in calc) {
+        if (calc.hasOwnProperty(x)) {
+          this[x] = calc[x]
+        }
+      }
+    }
+
+    klass.prototype.getPeriapsis = function() {
+      var a  = this.getSemiMajorAxis(),
+          ae = this.getEccentricity().times(a)
+
+      return a.minus(ae)
+    }
+
+    klass.prototype.getApoapsis = function() {
+      var a  = this.getSemiMajorAxis(),
+          ae = this.getEccentricity().times(a)
+
+      return a.plus(ae)
     }
 
     klass.prototype.hasShadow = function() { return true }
@@ -51,28 +74,6 @@
       return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times((2 * Math.PI))
     }
 
-    klass.prototype.getSemiMajorAxis = function() {
-      var orbital_params = this.calcOrbitalParams()
-      return orbital_params.pe.plus(orbital_params.ap).dividedBy(2)
-    }
-
-    klass.prototype.calcOrbitalParams = function() {
-      // Equation 4.26 from http://www.braeunig.us/space/orbmech.htm
-      var C   = this.parent.mu.times(2).dividedBy(this.pos.r.times(this.getVelocity().toPower(2))),
-          tmp = C.toPower(2).minus(
-            new Decimal(1).minus(C).times(4).times(
-              new Decimal(Math.sin(this.getZenithAngle())).toPower(2).times(-1)
-            )
-          ).sqrt(),
-          den = new Decimal(1).minus(C).times(2),
-          r1  = C.times(-1).plus(tmp).dividedBy(den).times(this.pos.r),
-          r2  = C.times(-1).minus(tmp).dividedBy(den).times(this.pos.r),
-          ap  = new Decimal(Math.max(r1, r2)),
-          pe  = new Decimal(Math.min(r1, r2))
-
-      return { ap: ap, pe: pe }
-    }
-
     klass.prototype.getArgumentOfPeriapsis = function(t) {
       return this.pos.phi.plus(this.getTrueAnomaly(t))
     }
@@ -82,8 +83,10 @@
           a     = this.getSemiMajorAxis(),
           e     = this.getEccentricity(),
           r     = this.pos.r,
+          m     = this.getClampedMeanAnomaly(t),
           theta = Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
-      if ((this.getMeanAnomaly(t) % (2 * Math.PI)) >= Math.PI) theta = -theta
+
+      if (m > Math.PI) theta = -theta
 
       return theta
     }
@@ -101,7 +104,7 @@
       }
     }
 
-    klass.prototype.getPositionAtTime = function(t) { 
+    klass.prototype.getPositionAtTime = function(t) {
       var one  = new Decimal(1),
           M    = this.getMeanAnomaly(t),
           a    = this.getSemiMajorAxis(),
@@ -114,8 +117,8 @@
       return { r: r, phi: phi }
     }
 
-    klass.prototype.getMeanAnomaly = function(t) {
-      return this.getInitMeanAnomaly().plus(this.getMeanMotion().times(t))
+    klass.prototype.getClampedMeanAnomaly = function(t) {
+      return clampRadians(this.getMeanAnomaly(t))
     }
 
     klass.prototype.getMeanMotion = function() {
@@ -155,16 +158,12 @@
       return new Decimal(Math.sin(this.getHeading()))
     }
 
-    klass.prototype.getHeading = function() {
-      return this.getPrograde()
+    klass.prototype.getProgradeX = function(t) {
+      return new Decimal(Math.cos(this.getPrograde(t)))
     }
 
-    klass.prototype.getProgradeX = function() {
-      return new Decimal(Math.cos(this.getPrograde()))
-    }
-
-    klass.prototype.getProgradeY = function() {
-      return new Decimal(Math.sin(this.getPrograde()))
+    klass.prototype.getProgradeY = function(t) {
+      return new Decimal(Math.sin(this.getPrograde(t)))
     }
 
     klass.prototype.getLocalCoordinates = function() {
@@ -199,10 +198,6 @@
       return this.radius
     }
 
-    klass.prototype.getVelocity = function() {
-      return this.v
-    }
-
     klass.prototype.getMissionTime = function(t) {
       return t.minus(this.launch_time)
     }
@@ -215,23 +210,6 @@
       return this.bodies_in_soi
     }
 
-    klass.prototype.getEccentricity = function() {
-      // Equation 4.27 from http://www.braeunig.us/space/orbmech.htm
-      var p1 = this.pos.r.times(this.getVelocity().toPower(2)).dividedBy(this.parent.mu).minus(1).toPower(2),
-          p2 = new Decimal(Math.sin(this.getZenithAngle())).toPower(2),
-          p3 = new Decimal(Math.cos(this.getZenithAngle())).toPower(2)
-
-      return p1.times(p2).plus(p3).sqrt()
-    }
-
-    klass.prototype.getZenithAngle = function() {
-      return this.getPrograde().minus(this.pos.phi)
-    }
-
-    klass.prototype.getPrograde = function() {
-      return this.prograde
-    }
-
     klass.prototype.getParentCoordinates = function() {
       return this.getParent().getCoordinates()
     }
@@ -242,6 +220,14 @@
 
     klass.prototype.isColliding = function(ship) {
       return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.getRadius(), this.radius_inner_bb)
+    }
+
+    klass.prototype.getDistanceFromParent = function() {
+      return this.pos.r
+    }
+
+    function clampRadians(n) {
+      return ((n % Math.PI2) + Math.PI2) % Math.PI2
     }
 
     function detectIntersection(obj1_coords, obj2_coords, outerbb, innerbb) {
@@ -262,4 +248,4 @@
 
     return klass
   })()
-})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable)
+})(FlightPlanner.Model, FlightPlanner.Helper.Helper, FlightPlanner.Helper.makeObservable, { momentum: FlightPlanner.Model.MomentumBody, acceleration: FlightPlanner.Model.AcceleratingBody })

@@ -127,6 +127,18 @@
       context.restore()
     }
 
+    klass.prototype.renderHyperbola = function(coords, pe, pe_arg, style) {
+      var context   = this.getContext(),
+          center    = { x: coords.x, y: coords.y },
+          dist_sq   = coords.x.minus(pe.x).toPower(2).plus(coords.y.minus(pe.y).toPower(2)),
+          a         = this.getSemiMajorAxis(),
+          b         = dist_sq.minus(a.times(a)).sqrt()
+      context.save()
+      context.moveTo(center.x.minus(w), center.y)
+      drawCurve()
+      context.restore(center.x.minus(w / 3), center.y.plus())
+    }
+
     function splitCurve(curve) {
       var fs = [
         function p1_1(p1, p2, p3, p4) { return p1 },
@@ -185,8 +197,10 @@
         context.arc(curve[4], curve[5], 2, 0, 2 * Math.PI)
         context.fill()
         context.closePath()
+        context.restore()
+        context.save()
         context.beginPath()
-        context.arc(curve[6], curve[7], 2, 0, 2 * Math.PI)
+        context.arc(curve[6], curve[7], 4, 0, 2 * Math.PI)
         context.fill()
         context.closePath()
         context.restore()
