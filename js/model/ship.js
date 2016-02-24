@@ -151,8 +151,6 @@
     }
 
     klass.prototype.detectSOIChange = function(t) {
-      if (this.just_checked_soi) this.just_checked_soi = false
-
       var new_parent, fn
       if (this.parent.isInSOI(this, t)) {
         var bodies = this.parent.getBodiesInSOI()

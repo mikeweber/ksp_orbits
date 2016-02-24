@@ -2,7 +2,7 @@
 
 var start_time = 0
 // for Duna Intercept
-var launch_time = 6619652
+var launch_time = 6519652
 start_time = launch_time - 100
 
 var player = initUniverse()
@@ -113,7 +113,7 @@ function runDunaIntercept(player, name, launch_time, $) {
       max_accel:        0.2,
       fuel_consumption: 0.19,
       initial_angle:    Math.PI / 4,
-      heading:          0,
+      heading:          0.1,
       absolute_heading: false,
       target:           player.sim.getBody('Duna')
     }
