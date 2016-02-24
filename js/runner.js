@@ -132,7 +132,7 @@ function runDunaIntercept(player, name, launch_time, $) {
     followShipAndTarget(ship, player.sim.getBody('Duna'), player)
   })
 
-  var aim_for_duna = plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.55, true, 1).done(function(status_tracker) {
+  var aim_for_duna = plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.53, true, 1).done(function(status_tracker) {
     status_tracker.setMessage('Left Kerbin SOI; aiming to where Duna is going to be.')
   })
 
