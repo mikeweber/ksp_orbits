@@ -4,7 +4,7 @@
       return 0
     },
     getCartesianPrograde: function(t) {
-      return helpers.clampRadians(this.pos.phi.plus(this.getFlightPathAngle(t)).minus(Math.PI / 2))
+      return helpers.clampRadians(this.getCartesianAngle(t).plus(this.getFlightPathAngle(t)).plus(Math.PI / 2))
     },
     getCartesianAngle: function(t) {
       return helpers.clampRadians(this.getArgumentOfPeriapsis().plus(this.getTrueAnomaly(t)))
