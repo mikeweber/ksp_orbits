@@ -7,16 +7,17 @@ var last = {};
   namespace.CelestialBody = (function() {
     var klass = function CelestialBody() {}
 
-    klass.prototype.initializeParameters = function(name, radius, mu, v, semimajor_axis, pos, e, prograde) {
+    klass.prototype.initializeParameters = function(name, radius, mu, v, semimajor_axis, pos, arg_of_pe, e, prograde) {
       this.name             = name
       this.radius           = new Decimal(radius)
       this.mu               = new Decimal(mu)
       this.v                = new Decimal(v)
       this.a                = new Decimal(semimajor_axis)
       this.pos              = { r: new Decimal(pos.r), phi: new Decimal(pos.phi) }
-      this.m                = new Decimal(this.pos.phi)
+      this.setInitMeanAnomaly(this.pos.phi)
+      this.setArgumentOfPeriapsis(arg_of_pe)
       this.e                = new Decimal(e)
-      this.prograde         = new Decimal(prograde)
+      this.setCartesianPrograde(prograde)
       this.last_breadcrumb  = 0
       this.breadcrumb_delta = WEEK
       this.trail_length     = 0
@@ -30,6 +31,10 @@ var last = {};
           this[x] = calc[x]
         }
       }
+    }
+
+    klass.prototype.setCartesianPrograde = function(prograde) {
+      this.prograde = new Decimal(prograde)
     }
 
     klass.prototype.getPeriapsis = function() {
@@ -48,8 +53,8 @@ var last = {};
 
     klass.prototype.hasShadow = function() { return true }
 
-    klass.prototype.sunAngle = function() {
-      var pos = this.getCoordinates()
+    klass.prototype.sunAngle = function(t) {
+      var pos = this.getCoordinates(t)
       return new Decimal(Math.atan2(pos.y, pos.x))
     }
 
@@ -75,33 +80,8 @@ var last = {};
     }
 
     klass.prototype.getArgumentOfPeriapsis = function(t) {
+      return this.arg_of_pe
       return this.pos.phi.plus(this.getTrueAnomaly(t))
-    }
-
-    klass.prototype.getTrueAnomaly = function(t) {
-      var one   = new Decimal(1),
-          a     = this.getSemiMajorAxis(),
-          e     = this.getEccentricity(),
-          r     = this.pos.r,
-          m     = this.getClampedMeanAnomaly(t),
-          theta = Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
-
-      if (m > Math.PI) theta = -theta
-
-      return theta
-    }
-
-    klass.prototype.getEccentricAnomaly = function(M, e, guess, tries) {
-      if (typeof e === 'undefined') e = this.getEccentricity()
-      if (typeof guess === 'undefined') guess = M
-      if (typeof tries === 'undefined') tries = 1
-
-      var anom = guess.minus(guess.minus(M.plus(e.times(Math.sin(guess)))).dividedBy(new Decimal(1).minus(e.times(Math.cos(guess)))))
-      if (tries > 30 || anom.minus(guess).abs().lt(0.0001)) {
-        return anom
-      } else {
-        return this.getEccentricAnomaly(M, e, anom, tries + 1)
-      }
     }
 
     klass.prototype.getPositionAtTime = function(t) {
@@ -118,7 +98,7 @@ var last = {};
     }
 
     klass.prototype.getClampedMeanAnomaly = function(t) {
-      return clampRadians(this.getMeanAnomaly(t))
+      return helpers.clampRadians(this.getMeanAnomaly(t))
     }
 
     klass.prototype.getMeanMotion = function() {
@@ -129,8 +109,16 @@ var last = {};
       return this.m
     }
 
+    klass.prototype.setInitMeanAnomaly = function(m) {
+      this.m = helpers.clampRadians(m)
+    }
+
+    klass.prototype.setArgumentOfPeriapsis = function(pe) {
+      this.arg_of_pe = new Decimal(pe)
+    }
+
     klass.prototype.getSystemMu = function() {
-      return this.mu.plus(this.getParentMu())
+      return this.getParentMu()
     }
 
     klass.prototype.getParentMu = function() {
@@ -158,22 +146,22 @@ var last = {};
       return new Decimal(Math.sin(this.getHeading()))
     }
 
-    klass.prototype.getProgradeX = function(t) {
-      return new Decimal(Math.cos(this.getPrograde(t)))
+    klass.prototype.getCartesianProgradeX = function(t) {
+      return new Decimal(Math.cos(this.getCartesianPrograde(t)))
     }
 
-    klass.prototype.getProgradeY = function(t) {
-      return new Decimal(Math.sin(this.getPrograde(t)))
+    klass.prototype.getCartesianProgradeY = function(t) {
+      return new Decimal(Math.sin(this.getCartesianPrograde(t)))
     }
 
-    klass.prototype.getLocalCoordinates = function() {
-      return helpers.posToCoordinates(this.pos)
-    }
-
-    klass.prototype.getCoordinates = function() {
-      var coords = this.getLocalCoordinates(),
-          parent = this.parent.getCoordinates()
+    klass.prototype.getCoordinates = function(t) {
+      var coords = this.getLocalCoordinates(t),
+          parent = this.parent.getCoordinates(t)
       return { x: coords.x.plus(parent.x), y: coords.y.plus(parent.y) }
+    }
+
+    klass.prototype.getLocalCoordinates = function(t) {
+      return helpers.posToCoordinates({ r: this.pos.r, phi: this.getCartesianAngle(t) })
     }
 
     klass.prototype.getGravityWellX = function() {
@@ -210,24 +198,16 @@ var last = {};
       return this.bodies_in_soi
     }
 
-    klass.prototype.getParentCoordinates = function() {
-      return this.getParent().getCoordinates()
+    klass.prototype.getParentCoordinates = function(t) {
+      return this.getParent().getCoordinates(t)
     }
 
-    klass.prototype.isInSOI = function(ship) {
-      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.soi, this.inner_soi_bb)
+    klass.prototype.isInSOI = function(ship, t) {
+      return detectIntersection(ship.getCoordinates(t), this.getCoordinates(t), this.soi, this.inner_soi_bb)
     }
 
-    klass.prototype.isColliding = function(ship) {
-      return detectIntersection(ship.getCoordinates(), this.getCoordinates(), this.getRadius(), this.radius_inner_bb)
-    }
-
-    klass.prototype.getDistanceFromParent = function() {
-      return this.pos.r
-    }
-
-    function clampRadians(n) {
-      return ((n % Math.PI2) + Math.PI2) % Math.PI2
+    klass.prototype.isColliding = function(ship, t) {
+      return detectIntersection(ship.getCoordinates(t), this.getCoordinates(t), this.getRadius(), this.radius_inner_bb)
     }
 
     function detectIntersection(obj1_coords, obj2_coords, outerbb, innerbb) {

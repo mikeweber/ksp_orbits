@@ -4,9 +4,9 @@
   'use strict'
 
   namespace.Ship = (function() {
-    var klass = function Ship(  name, radius,               v,    pos,    prograde, heading, absolute_heading) {
+    var klass = function Ship(  name, radius,    v,    pos,       prograde, heading, absolute_heading) {
       this.setMotionCalculator(calculators.acceleration)
-      this.initializeParameters(name, radius, 0, v, 0, pos, 0, prograde)
+      this.initializeParameters(name, radius, 0, v, 0, pos, 0, 0, prograde)
       this.setHeading(heading, absolute_heading)
       this.breadcrumb_delta  = DAY
       this.nearest_approach  = null
@@ -30,16 +30,16 @@
     klass.prototype.renderName = function() {}
 
     klass.prototype.step = function(t, dt) {
-      var gravity     = this.parent.mu.plus(this.mu).dividedBy(this.pos.r.toPower(2)).times(-1),
+      var gravity     = this.getSystemMu().dividedBy(this.pos.r.toPower(2)).times(-1),
           g_x         = gravity.times(this.getGravityWellX()),
           g_y         = gravity.times(this.getGravityWellY()),
           a_x         = this.getAcceleration().times(this.getHeadingX()),
           a_y         = this.getAcceleration().times(this.getHeadingY()),
           accel_x     = a_x.plus(g_x).times(dt),
           accel_y     = a_y.plus(g_y).times(dt),
-          vel_x       = this.v.times(this.getProgradeX(t)),
-          vel_y       = this.v.times(this.getProgradeY(t)),
-          old_coords  = this.getLocalCoordinates(),
+          vel_x       = this.v.times(this.getCartesianProgradeX(t)),
+          vel_y       = this.v.times(this.getCartesianProgradeY(t)),
+          old_coords  = this.getLocalCoordinates(t),
           mid_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
           mid_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
           mid_coords  = { x: mid_x, y: mid_y },
@@ -55,6 +55,7 @@
       this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y))
       this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
       this.setPosition(new_coords)
+      this.updateInitialMeanAnomaly(t)
       this.dropBreadcrumb(t)
       this.detectSOIChange(t)
       this.detectCollision(t)
@@ -68,7 +69,7 @@
       this.max_accel = new Decimal(accel)
     }
 
-    klass.prototype.setThrottle = function(throttle) {
+    klass.prototype.setThrottle = function(throttle, t) {
       if (helpers.isBlank(throttle)) return
 
       var prevThrottle = this.throttle
@@ -76,9 +77,9 @@
       if (throttle > 1) throttle = 1
       if (prevThrottle !== throttle) {
         if (throttle === 0) {
-          this.useMomentumCalculator(this.t)
+          this.useMomentumCalculator(t)
         } else {
-          this.useAcceleratingCalculator(this.t)
+          this.useAcceleratingCalculator(t)
         }
       }
       this.throttle = throttle
@@ -91,13 +92,13 @@
     klass.prototype.useMomentumCalculator = function(t) {
       this.a = this.getSemiMajorAxis()
       this.e = this.getEccentricity()
-      this.m = this.getMeanAnomaly().minus(this.getMeanMotion().times(t))
+      this.setInitMeanAnomaly(this.getMeanAnomaly(t).minus(this.getMeanMotion().times(t)))
       this.setMotionCalculator(calculators.momentum)
     }
 
     klass.prototype.useAcceleratingCalculator = function(t) {
-      this.prograde = this.getPrograde(t)
-      this.v        = this.getVelocity(t)
+      this.setCartesianPrograde(this.getCartesianPrograde(t))
+      this.setVelocity(this.getVelocity(t))
       this.setMotionCalculator(calculators.acceleration)
     }
 
@@ -124,10 +125,6 @@
       this.pos = pos
     }
 
-    klass.prototype.setPrograde = function(prograde) {
-      this.prograde = new Decimal(prograde)
-    }
-
     klass.prototype.setHeading = function(heading, use_absolute) {
       if (helpers.isBlank(heading)) return
 
@@ -140,11 +137,11 @@
     }
 
     klass.prototype.alterPrograde = function(vel_x, vel_y) {
-      this.prograde = new Decimal(Math.atan2(vel_y, vel_x))
+      this.setCartesianPrograde(Math.atan2(vel_y, vel_x))
     }
 
-    klass.prototype.getCoordinates = function() {
-      var parent = this.parent.getCoordinates(),
+    klass.prototype.getCoordinates = function(t) {
+      var parent = this.parent.getCoordinates(t),
           pos    = helpers.posToCoordinates(this.pos)
       return { x: pos.x.plus(parent.x), y: pos.y.plus(parent.y) }
     }
@@ -157,13 +154,13 @@
       if (this.just_checked_soi) this.just_checked_soi = false
 
       var new_parent, fn
-      if (this.parent.isInSOI(this)) {
+      if (this.parent.isInSOI(this, t)) {
         var bodies = this.parent.getBodiesInSOI()
         for (var i = bodies.length; i--; ) {
-          if (bodies[i].isInSOI(this)) {
+          if (bodies[i].isInSOI(this, t)) {
             fn = switchToChildSOI
             new_parent = bodies[i]
-            i = 1
+            i = 0
           }
         }
       } else {
@@ -179,13 +176,13 @@
     }
 
     function switchToChildSOI(ship, new_parent, t) {
-      var old_coords = ship.getLocalCoordinates(),
-          p_coords   = new_parent.getLocalCoordinates(),
+      var old_coords = ship.getLocalCoordinates(t),
+          p_coords   = new_parent.getLocalCoordinates(t),
           new_coords = { x: old_coords.x.minus(p_coords.x), y: old_coords.y.minus(p_coords.y) },
           p_vel      = new_parent.getVelocity(t),
           s_vel      = ship.getVelocity(t),
-          p_pro      = new_parent.getPrograde(t),
-          s_pro      = ship.getPrograde(t),
+          p_pro      = new_parent.getCartesianPrograde(t),
+          s_pro      = ship.getCartesianPrograde(t),
           p_vel_x    = p_vel.times(Math.cos(p_pro)),
           p_vel_y    = p_vel.times(Math.sin(p_pro)),
           s_vel_x    = s_vel.times(Math.cos(s_pro)),
@@ -195,20 +192,39 @@
 
       ship.parent = new_parent
       ship.setPosition(new_coords)
-      ship.alterPrograde(vel_x, vel_y)
       ship.alterVelocity(vel_x, vel_y)
+      ship.alterPrograde(vel_x, vel_y)
+      ship.a = getSemiMajorAxis(ship.getSystemMu(), ship.v)
       ship.e = getEccentricity(ship, ship.v, ship.prograde.minus(ship.pos.phi))
+      var M
+      if (e.gt(1)) {
+        var one = new Decimal(1),
+            a   = ship.getSemiMajorAxis(),
+            e   = ship.getEccentricity(),
+            r   = ship.pos.r,
+            f, F, M
+
+        // http://www.braeunig.us/space/orbmech.htm eq 4.82
+        f = -Math.acos(a.times(one.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
+        // http://www.braeunig.us/space/orbmech.htm eq 4.87
+        F = Math.acosh(e.plus(Math.cos(f)).dividedBy(one.plus(e.times(Math.cos(f)))))
+        // https://en.wikipedia.org/wiki/Kepler%27s_equation#Hyperbolic_Kepler_equation
+        M = e.times(Math.sinh(F)).minus(F)
+      } else {
+        M = ship.getMeanAnomaly(t)
+      }
+      ship.setInitMeanAnomaly(M.minus(ship.getMeanMotion().times(t)))
     }
 
     function switchToParentSOI(ship, new_parent, t) {
-      var old_coords = ship.getLocalCoordinates(),
-          p_coords   = ship.parent.getLocalCoordinates(),
+      var old_coords = ship.getLocalCoordinates(t),
+          p_coords   = ship.parent.getLocalCoordinates(t),
           new_coords = { x: p_coords.x.plus(old_coords.x), y: p_coords.y.plus(old_coords.y) },
           old_parent = ship.parent,
           p_vel      = old_parent.getVelocity(t),
           s_vel      = ship.getVelocity(t),
-          p_pro      = old_parent.getPrograde(t),
-          s_pro      = ship.getPrograde(t),
+          p_pro      = old_parent.getCartesianPrograde(t),
+          s_pro      = ship.getCartesianPrograde(t),
           p_vel_x    = p_vel.times(Math.cos(p_pro)),
           p_vel_y    = p_vel.times(Math.sin(p_pro)),
           s_vel_x    = s_vel.times(Math.cos(s_pro)),
@@ -220,14 +236,20 @@
       ship.setPosition(new_coords)
       ship.alterPrograde(vel_x, vel_y)
       ship.alterVelocity(vel_x, vel_y)
-      ship.e = getEccentricity(ship, ship.v, ship.prograde.minus(ship.pos.phi))
+      ship.a = getSemiMajorAxis(ship.getSystemMu(), ship.getVelocity(t))
+      ship.e = getEccentricity(ship, ship.getVelocity(t), ship.getFlightPathAngle(t))
+      ship.setInitMeanAnomaly(ship.getMeanAnomaly(t).minus(ship.getMeanMotion().times(t)))
     }
 
-    function getEccentricity(ship, v, zenith) {
+    function getSemiMajorAxis(mu, v) {
+      return mu.dividedBy(v.toPower(2)).times(-1)
+    }
+
+    function getEccentricity(ship, v, flight_path_angle) {
       // Equation 4.30 from http://www.braeunig.us/space/orbmech.htm
       var p1  = ship.pos.r.times(v.toPower(2)).dividedBy(ship.parent.mu).minus(1).toPower(2),
-          p2  = new Decimal(Math.sin(zenith)).toPower(2),
-          p3  = new Decimal(Math.cos(zenith)).toPower(2)
+          p2  = new Decimal(Math.sin(flight_path_angle)).toPower(2),
+          p3  = new Decimal(Math.cos(flight_path_angle)).toPower(2)
 
       return p1.times(p2).plus(p3).sqrt()
     }
@@ -238,8 +260,8 @@
       }
     }
 
-    klass.prototype.detectCollision = function() {
-      if (this.parent.isColliding(this)) {
+    klass.prototype.detectCollision = function(t) {
+      if (this.parent.isColliding(this, t)) {
         this.notifyObservers('after:collision')
       }
     }

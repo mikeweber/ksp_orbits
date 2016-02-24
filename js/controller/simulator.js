@@ -4,8 +4,8 @@
   'use strict'
 
   namespace.Simulator = (function() {
-    var klass = function Simulator(time, bodies, tick_size, debug) {
-      this.setBodies(bodies)
+    var klass = function Simulator(time, system, tick_size, debug) {
+      this.setBodies(system.getPlanets())
       this.initial_tick = tick_size
       this.initial_time = time
       this.setTime(time)

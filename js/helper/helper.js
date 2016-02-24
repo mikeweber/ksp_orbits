@@ -31,17 +31,22 @@
     radianToDegrees: function(rad) {
       return rad.times(180).dividedBy(Math.PI)
     },
+    clampRadians: function(n) {
+      if (n.toNumber) n = n.toNumber()
+
+      return new Decimal(((n + Math.PI) % Math.TAU + Math.TAU) % Math.TAU - Math.PI)
+    },
     roundTo: function(num, dec) {
       if (!num) return null
 
       var factor = new Decimal(10).toPower(dec)
       return num.times(factor).round().dividedBy(factor)
     },
-    calcObjectDistance: function(obj1, obj2) {
+    calcObjectDistance: function(obj1, obj2, t) {
       if (this.isBlank(obj1) || this.isBlank(obj2)) return null
 
-      var coord1 = obj1.getCoordinates(),
-          coord2 = obj2.getCoordinates()
+      var coord1 = obj1.getCoordinates(t),
+          coord2 = obj2.getCoordinates(t)
       return this.calcCoordDistance(coord1, coord2)
     },
     calcCoordDistance: function(coord1, coord2) {

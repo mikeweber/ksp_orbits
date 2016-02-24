@@ -116,9 +116,9 @@
       return this.world_size.height.dividedBy(this.zoom)
     }
 
-    klass.prototype.getOffset = function() {
+    klass.prototype.getOffset = function(t) {
       if (this.tracking) {
-        return this.tracking.body.getCoordinates()
+        return this.tracking.body.getCoordinates(t)
       } else {
         return { x: new Decimal(0), y: new Decimal(0) }
       }
@@ -139,16 +139,16 @@
       return this.canvas_size.height
     }
 
-    klass.prototype.convertLocalToCanvas = function(parent, local_pos) {
-      var parent_coords = parent.getCoordinates(),
+    klass.prototype.convertLocalToCanvas = function(parent, local_pos, t) {
+      var parent_coords = parent.getCoordinates(t),
           local_coords  = helpers.posToCoordinates(local_pos)
-      return this.convertWorldToCanvas({ x: parent_coords.x.plus(local_coords.x), y: parent_coords.y.plus(local_coords.y) })
+      return this.convertWorldToCanvas({ x: parent_coords.x.plus(local_coords.x), y: parent_coords.y.plus(local_coords.y) }, t)
     }
 
-    klass.prototype.convertWorldToCanvas = function(coords) {
+    klass.prototype.convertWorldToCanvas = function(coords, t) {
       return {
-        x: this.scaleWorldToCanvasX(coords.x.minus(this.getOffset().x)).plus(this.origin.x),
-        y: this.scaleWorldToCanvasY(coords.y.minus(this.getOffset().y)).plus(this.origin.y)
+        x: this.scaleWorldToCanvasX(coords.x.minus(this.getOffset(t).x)).plus(this.origin.x),
+        y: this.scaleWorldToCanvasY(this.getOffset(t).y.minus(coords.y)).plus(this.origin.y)
       }
     }
 
@@ -161,7 +161,7 @@
     }
 
     klass.prototype.render = function(t) {
-      this.notifyObservers('before:render')
+      this.notifyObservers('before:render', t)
       var cleared_scenes = []
       for (var i = this.renderers.length; i--; ) {
         var renderer = this.renderers[i], context = renderer.getContext()
@@ -171,7 +171,7 @@
         }
         renderer.render(t)
       }
-      this.notifyObservers('after:render')
+      this.notifyObservers('after:render', t)
     }
 
     makeObservable(klass)

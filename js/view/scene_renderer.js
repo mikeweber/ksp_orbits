@@ -210,7 +210,7 @@
     function rotate(p, origin, theta) {
       if (isNaN(theta)) return p
       var x = p.x.minus(origin.x).times(Math.cos(theta)).minus(p.y.minus(origin.y).times(Math.sin(theta))).plus(origin.x),
-          y = p.x.minus(origin.x).times(Math.sin(theta)).plus(p.y.minus(origin.y).times(Math.cos(theta))).plus(origin.y)
+          y = origin.x.minus(p.x).times(Math.sin(theta)).plus(origin.y.minus(p.y).times(Math.cos(theta))).plus(origin.y)
 
       return { x: x, y: y }
     }

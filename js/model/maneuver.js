@@ -18,7 +18,7 @@
       if (!this.isReady(t, this.ship)) return false
 
       this.ship.setHeading(this.heading, this.absolute)
-      this.ship.setThrottle(this.throttle)
+      this.ship.setThrottle(this.throttle, t)
       this.alertCourseChange(t)
       return true
     }

@@ -15,10 +15,10 @@
           debugData(body.pos.r,   'r')
           debugData(body.pos.phi.times(180).dividedBy(Math.PI), 'phi')
           debugData(body.v,       'vel')
-          debugData(body.getPrograde().times(180).dividedBy(Math.PI), 'prograde')
+          debugData(body.getCartesianPrograde().times(180).dividedBy(Math.PI), 'prograde')
           debugData(body.getHeading().times(180).dividedBy(Math.PI), 'heading')
-          var kd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Kerbin'), body),
-              dd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Duna'), body)
+          var kd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Kerbin'), body, t),
+              dd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Duna'), body, t)
           debugData(kd, 'kdist')
           debugData(dd, 'ddist')
         }

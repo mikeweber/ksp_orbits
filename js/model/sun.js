@@ -7,7 +7,7 @@
     var zero = new Decimal(0)
     var klass = function Sun(mu, radius) {
       this.setMotionCalculator(calculator)
-      this.initializeParameters('Kerbol', radius, mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0)
+      this.initializeParameters('Kerbol', radius, mu, 0, 0, { 'r': 0, phi: 0 }, 0, 0, 0, 0)
     }
 
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
@@ -20,6 +20,7 @@
     klass.prototype.isInSOI           = function() { return true }
     klass.prototype.getParent         = function() { return this }
     klass.prototype.getCoordinates    = function() { return { x: zero, y: zero } }
+    klass.prototype.getCartesianAngle = function() { return zero }
     klass.prototype.parentIsSun       = function() { return true }
     klass.prototype.getSun            = function() { return this }
     klass.prototype.hasShadow         = function() { return false }

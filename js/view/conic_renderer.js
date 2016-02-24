@@ -12,8 +12,8 @@
 
     klass.prototype.render = function(t) {
       var e      = this.body.getEccentricity(),
-          coords = this.convertWorldToCanvas(this.body.getParentCoordinates()),
-          a      = this.scaleWorldToCanvasX(this.body.getSemiMajorAxis()),
+          coords = this.convertWorldToCanvas(this.body.getParentCoordinates(t), t),
+          a      = this.scaleWorldToCanvasY(this.body.getSemiMajorAxis()),
           style  = this.getStyle()
 
       if (!this.body.parentIsSun() && this.getZoom().lt(200)) return
@@ -21,7 +21,7 @@
       if (e >= 0 && e < 1) {
         this.renderVisibleEllipseSegments(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
       } else if (e === 1) {
-        var pe = this.scaleWorldToCanvasX(this.body.getPeriapsis())
+        var pe = this.scaleWorldToCanvasY(this.body.getPeriapsis())
         this.renderParabola(coords, pe,this.body.getArgumentOfPeriapsis(t), style)
       }
     }

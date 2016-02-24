@@ -24,23 +24,23 @@
         if (this.timestamp.lt(t)) this.blastOff(t)
       }.bind(this)
       this.blastOff = function(t) {
-        this.notifyObservers('before:blastOff', this.ship)
+        this.notifyObservers('before:blastOff', this.ship, t)
         this.ship.setParent(planet)
         var alt          = planet.getRadius().plus(initial_altitude * 1000),
             v            = planet.mu.times(new Decimal(1).dividedBy(alt)).sqrt(),
-            init_heading = new Decimal(launch_data.initial_angle - Math.PI * 0.5)
+            init_heading = new Decimal(launch_data.initial_angle + Math.PI * 0.5)
         this.ship.setVelocity(v)
         this.ship.setPositionUsingPosition({ r: alt, phi: launch_data.initial_angle })
-        this.ship.setPrograde(init_heading)
+        this.ship.setCartesianPrograde(init_heading)
         this.ship.setHeading(launch_data.heading, launch_data.absolute_heading)
         this.ship.setMaxAcceleration(launch_data.max_accel)
-        this.ship.setThrottle(launch_data.throttle)
+        this.ship.setThrottle(launch_data.throttle, t)
         this.ship.setTime(t)
         this.initObservers()
         this.simulator.addBody(this.ship)
 
         this.simulator.unobserve('before:stepBodies', conditional_activate)
-        this.notifyObservers('after:blastOff', this.ship)
+        this.notifyObservers('after:blastOff', this.ship, t)
         this.focusOnShip()
 
         return this.ship
@@ -62,10 +62,10 @@
         this.ship.setParent(parent_body)
         this.ship.setVelocity(velocity)
         this.ship.setPositionUsingPosition(pos)
-        this.ship.setPrograde(prograde)
+        this.ship.setCartesianPrograde(prograde)
         this.ship.setHeading(launch_data.heading, launch_data.absolute_heading)
         this.ship.setMaxAcceleration(launch_data.max_accel)
-        this.ship.setThrottle(launch_data.throttle)
+        this.ship.setThrottle(launch_data.throttle, t)
         this.ship.setTime(t)
         if (launch_data.mission_time) {
           this.ship.setLaunchTime(t.minus(launch_data.mission_time))

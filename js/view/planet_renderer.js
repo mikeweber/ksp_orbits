@@ -10,10 +10,16 @@
     klass.prototype = Object.create(namespace.SceneRenderer.prototype)
     klass.prototype.constructor = klass
 
-    klass.prototype.render = function() {
+    klass.prototype.render = function(t) {
+      this.renderBody(t)
+      this.renderShadow(t)
+      this.renderName(t)
+    }
+
+    klass.prototype.renderBody = function(t) {
       var ctx           = this.context,
-          world_coords  = this.body.getCoordinates(),
-          coords        = this.convertWorldToCanvas(world_coords),
+          world_coords  = this.body.getCoordinates(t),
+          coords        = this.convertWorldToCanvas(world_coords, t),
           planet_radius = this.getRadiusForRendering(),
           soi_radius    = this.getSOIRadiusForRendering()
       this.renderBreadcrumbs()
@@ -21,15 +27,13 @@
       if (soi_radius && soi_radius > planet_radius) {
         this.renderCircle(coords, soi_radius, { stroke_style: '#FFFFFF', line_width: 1 })
       }
-      this.renderShadow()
-      this.renderName()
     }
 
-    klass.prototype.renderShadow = function() {
+    klass.prototype.renderShadow = function(t) {
       if (!this.body.hasShadow()) return
 
       var context   = this.getContext(),
-          coords    = this.convertWorldToCanvas(this.body.getCoordinates()),
+          coords    = this.convertWorldToCanvas(this.body.getCoordinates(t), t),
           radius    = this.getRadiusForRendering(),
           sun_angle = this.body.sunAngle(),
           start     = sun_angle.minus(Math.PI / 2),
@@ -46,11 +50,11 @@
       context.restore()
     }
 
-    klass.prototype.renderName = function() {
+    klass.prototype.renderName = function(t) {
       if (this.getZoom().lt(700) && !this.body.parentIsSun()) return
 
       var context = this.getContext(),
-          coords  = this.convertWorldToCanvas(this.body.getCoordinates())
+          coords  = this.convertWorldToCanvas(this.body.getCoordinates(t), t)
       context.save()
       context.textAlign     = 'center'
       context.textBaseline  = 'top'
