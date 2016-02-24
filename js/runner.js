@@ -2,7 +2,7 @@
 
 var start_time = 0
 // for Duna Intercept
-var launch_time = 6819652
+var launch_time = 6619652
 start_time = launch_time - 100
 
 var player = initUniverse()
@@ -11,7 +11,7 @@ player.run()
 addListeners(jQuery, player)
 runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
 
-function followShipAndTarget(ship, final_target, player, t) {
+function followShipAndTarget(ship, final_target, player) {
   'use strict'
 
   var zoom, coords1, coords3, zoom_x, zoom_y, dist_x, dist_y, dist_x2, dist_y2, port_x, port_y,
@@ -44,7 +44,7 @@ function followShipAndTarget(ship, final_target, player, t) {
     }
   }
 
-  player.renderer.observe('before:render', follow, t)
+  player.renderer.observe('before:render', follow)
   player.observe('after:smoothZoomIn',  function() { player.renderer.unobserve('before:render', follow) })
   player.observe('after:smoothZoomOut', function() { player.renderer.unobserve('before:render', follow) })
   player.observe('after:trackNext',     function() { player.renderer.unobserve('before:render', follow) })
@@ -100,11 +100,13 @@ function initUniverse() {
 function runDunaIntercept(player, name, launch_time, $) {
   'use strict'
 
-  var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin')
+  var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin'),
+      duna = player.sim.getBody('Duna'),
+      kerbin = player.sim.getBody('Kerbin')
   $('#status').append(stat.getPanel())
 
   var plan = new FlightPlanner.Model.FlightPlan(player, name, stat, launch_time).scheduleLaunchFromPlanet(
-    player.sim.getBody('Kerbin'),
+    kerbin,
     70000,
     {
       throttle:         1,
@@ -127,7 +129,18 @@ function runDunaIntercept(player, name, launch_time, $) {
 
   plan.observe('after:blastOff', addShipRenderer)
   plan.observe('after:blastOff', function(ship, t) {
-    followShipAndTarget(ship, player.sim.getBody('Duna'), player, t)
+    followShipAndTarget(ship, player.sim.getBody('Duna'), player)
+  })
+
+  var aim_for_duna = plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.55, true, 1).done(function(status_tracker) {
+    status_tracker.setMessage('Left Kerbin SOI; aiming to where Duna is going to be.')
+  })
+
+  var begin_deceleration
+  aim_for_duna.done(function() {
+    begin_deceleration = plan.addManeuver(function(t, ship) { return FlightPlanner.Helper.Helper.calcObjectDistance(ship, duna, t).lt(FlightPlanner.Helper.Helper.calcObjectDistance(ship, kerbin, t)) }, Math.PI + Math.PI * 0.55, true, 1).done(function(status_tracker) {
+      status_tracker.setMessage('Decelerating on approach to Duna.')
+    })
   })
 
   /*

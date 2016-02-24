@@ -194,10 +194,10 @@
       ship.setPosition(new_coords)
       ship.alterVelocity(vel_x, vel_y)
       ship.alterPrograde(vel_x, vel_y)
-      ship.a = getSemiMajorAxis(ship.getSystemMu(), ship.v)
-      ship.e = getEccentricity(ship, ship.v, ship.prograde.minus(ship.pos.phi))
+      ship.a = getSemiMajorAxis(ship.getSystemMu(), s_vel)
+      ship.e = getEccentricity(ship, s_vel, ship.getFlightPathAngle(t))
       var M
-      if (e.gt(1)) {
+      if (ship.e.gt(1)) {
         var one = new Decimal(1),
             a   = ship.getSemiMajorAxis(),
             e   = ship.getEccentricity(),
@@ -236,8 +236,8 @@
       ship.setPosition(new_coords)
       ship.alterPrograde(vel_x, vel_y)
       ship.alterVelocity(vel_x, vel_y)
-      ship.a = getSemiMajorAxis(ship.getSystemMu(), ship.getVelocity(t))
-      ship.e = getEccentricity(ship, ship.getVelocity(t), ship.getFlightPathAngle(t))
+      ship.a = getSemiMajorAxis(ship.getSystemMu(), s_vel)
+      ship.e = getEccentricity(ship, s_vel, ship.getFlightPathAngle(t))
       ship.setInitMeanAnomaly(ship.getMeanAnomaly(t).minus(ship.getMeanMotion().times(t)))
     }
 
