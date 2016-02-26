@@ -72,6 +72,9 @@
     },
     getDistanceFromParent: function() {
       return this.pos.r
+    },
+    getArgumentOfPeriapsis: function(t) {
+      return this.pos.phi.plus(this.getTrueAnomaly(t))
     }
   }
 })(FlightPlanner.Model, FlightPlanner.Helper.Helper)

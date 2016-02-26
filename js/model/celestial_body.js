@@ -79,11 +79,6 @@ var last = {};
       return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times((2 * Math.PI))
     }
 
-    klass.prototype.getArgumentOfPeriapsis = function(t) {
-      return this.arg_of_pe
-      return this.pos.phi.plus(this.getTrueAnomaly(t))
-    }
-
     klass.prototype.getPositionAtTime = function(t) {
       var one  = new Decimal(1),
           M    = this.getMeanAnomaly(t),

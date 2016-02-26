@@ -9,6 +9,9 @@
     getCartesianAngle: function(t) {
       return helpers.clampRadians(this.getArgumentOfPeriapsis().plus(this.getTrueAnomaly(t)))
     },
+    getArgumentOfPeriapsis: function() {
+      return this.arg_of_pe
+    },
     getZenithAngle: function(t) {
       return helpers.clampRadians(new Decimal(Math.PI / 2).minus(this.getFlightPathAngle(t)))
     },
