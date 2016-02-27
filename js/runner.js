@@ -105,6 +105,10 @@ function runDunaIntercept(player, name, launch_time, $) {
       kerbin = player.sim.getBody('Kerbin')
   $('#status').append(stat.getPanel())
 
+  var logger = new FlightPlanner.Util.FlightLog()
+  var log_panel = new FlightPlanner.View.LogPanel(logger)
+  $('#control-container').after(log_panel.getPanel())
+
   var plan = new FlightPlanner.Model.FlightPlan(player, name, stat, launch_time).scheduleLaunchFromPlanet(
     kerbin,
     70000,

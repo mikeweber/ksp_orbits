@@ -1,5 +1,6 @@
 var FlightPlanner = {
   View: {},
+  Util: {},
   Model: {},
   Helper: {},
   Controller: {}
