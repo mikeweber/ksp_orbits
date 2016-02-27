@@ -198,7 +198,11 @@ var last = {};
     }
 
     klass.prototype.isInSOI = function(ship, t) {
-      return detectIntersection(ship.getCoordinates(t), this.getCoordinates(t), this.soi, this.inner_soi_bb)
+      return detectIntersection(ship.getCoordinates(t), this.getCoordinates(t), this.getSOI(), this.inner_soi_bb)
+    }
+
+    klass.prototype.getSOI = function() {
+      return this.soi
     }
 
     klass.prototype.isColliding = function(ship, t) {

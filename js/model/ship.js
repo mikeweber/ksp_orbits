@@ -75,13 +75,13 @@
       var prevThrottle = this.throttle
       if (throttle < 0) throttle = 0
       if (throttle > 1) throttle = 1
-      if (prevThrottle !== throttle) {
-        if (throttle === 0) {
-          this.useMomentumCalculator(t)
-        } else {
-          this.useAcceleratingCalculator(t)
-        }
-      }
+      // if (prevThrottle !== throttle) {
+      //   if (throttle === 0) {
+      //     this.useMomentumCalculator(t)
+      //   } else {
+      //     this.useAcceleratingCalculator(t)
+      //   }
+      // }
       this.throttle = throttle
     }
 
@@ -130,6 +130,10 @@
 
       this.use_absolute_heading = use_absolute
       this.heading = new Decimal(heading)
+    }
+
+    klass.prototype.isHeadingAbsolute = function() {
+      return this.use_absolute_heading
     }
 
     klass.prototype.alterVelocity = function(vel_x, vel_y) {

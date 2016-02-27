@@ -2,7 +2,7 @@
 
 var start_time = 0
 // for Duna Intercept
-var launch_time = 6519652
+var launch_time = 6.0e6
 start_time = launch_time - 100
 
 var player = initUniverse()
@@ -11,17 +11,17 @@ player.run()
 addListeners(jQuery, player)
 runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
 
-function followShipAndTarget(ship, final_target, player) {
+function followShipAndTarget(ship, final_target, player, t) {
   'use strict'
 
   var zoom, coords1, coords3, zoom_x, zoom_y, dist_x, dist_y, dist_x2, dist_y2, port_x, port_y,
       closest_zoom = 500,
-      coords2      = ship.getCoordinates(),
+      coords2      = ship.getCoordinates(t),
       cur_target   = { getCoordinates: function() { return coords2 } }
 
   player.renderer.track(ship)
   function follow(t) {
-    coords1 = ship.getCoordinates()
+    coords1 = ship.getCoordinates(t)
     coords2 = cur_target.getCoordinates(t)
     port_x  = player.renderer.getViewportX().times(0.8)
     port_y  = player.renderer.getViewportY().times(0.8)
@@ -31,7 +31,7 @@ function followShipAndTarget(ship, final_target, player) {
       coords3 = final_target.getCoordinates(t)
       dist_x2 = coords1.x.minus(coords3.x).abs()
       dist_y2 = coords1.y.minus(coords3.y).abs()
-      if (dist_x2.lt(port_x) || dist_y2.lt(port_y)) {
+      if (dist_x2.lt(port_x) && dist_y2.lt(port_y)) {
         cur_target = final_target
         dist_x     = dist_x2
         dist_y     = dist_y2
@@ -133,17 +133,40 @@ function runDunaIntercept(player, name, launch_time, $) {
 
   plan.observe('after:blastOff', addShipRenderer)
   plan.observe('after:blastOff', function(ship, t) {
-    followShipAndTarget(ship, player.sim.getBody('Duna'), player)
+    logger.logShipTelemetry(ship, t, 'Blast off')
+    followShipAndTarget(ship, player.sim.getBody('Duna'), player, t)
   })
 
-  var aim_for_duna = plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.53, true, 1).done(function(status_tracker) {
-    status_tracker.setMessage('Left Kerbin SOI; aiming to where Duna is going to be.')
+  var aim_for_duna = plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.537, true, 1).done(function(status_tracker, ship, t) {
+    var msg = 'Left Kerbin SOI; aiming to where Duna is going to be.'
+    logger.logShipTelemetry(ship, t, msg)
+    status_tracker.setMessage(msg)
   })
 
   var begin_deceleration
   aim_for_duna.done(function() {
-    begin_deceleration = plan.addManeuver(function(t, ship) { return FlightPlanner.Helper.Helper.calcObjectDistance(ship, duna, t).lt(FlightPlanner.Helper.Helper.calcObjectDistance(ship, kerbin, t)) }, Math.PI + Math.PI * 0.55, true, 1).done(function(status_tracker) {
-      status_tracker.setMessage('Decelerating on approach to Duna.')
+    begin_deceleration = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(2.005e5) }, Math.PI + Math.PI * 0.539, true, 1).done(function(status_tracker, ship, t) {
+      var msg = 'Decelerating on approach to Duna.'
+      logger.logShipTelemetry(ship, t, msg)
+      status_tracker.setMessage(msg)
+    })
+  })
+
+  var duna_intercept = plan.addSOIChangeManeuver(player.sim.getBody('Duna'), Math.PI, false, 1).done(function(status_tracker, ship, t) {
+    var msg = 'Reached Duna\'s SOI.'
+    logger.logShipTelemetry(ship, t, msg)
+    status_tracker.setMessage(msg)
+  })
+
+  var duna_circularization
+  duna_intercept.done(function(status_tracker, ship, t) {
+    duna_circularization = plan.addManeuver(function(t, ship) {
+      var e = ship.getEccentricity()
+      return e.gt(0) && e.lt(1) && ship.getApoapsis().lt(ship.getParent().getSOI())
+    }, 0, false, 0).done(function(status_tracker, ship, t) {
+      var msg = 'Duna SOI capture complete.'
+      logger.logShipTelemetry(ship, t, msg)
+      status_tracker.setMessage(msg)
     })
   })
 
