@@ -40,6 +40,10 @@
         .append(this.getPanelFor('ecc'))
         .append(this.makeTitle('Zenith angle'))
         .append(this.getPanelFor('gamma'))
+        .append(this.makeTitle('Flight path angle'))
+        .append(this.getPanelFor('flight_path'))
+        .append(this.makeTitle('True Anomaly'))
+        .append(this.getPanelFor('true_anom'))
         .append(this.makeTitle('Prograde'))
         .append(this.getPanelFor('prograde'))
         .append(this.makeTitle('Heading'))
@@ -58,13 +62,15 @@
       this.updateStat('vel', helpers.roundTo(ship.getVelocity(), 1) + 'm/s')
       this.updateStat('throttle', helpers.roundTo(new Decimal(ship.getThrottle()), 1))
       this.updateStat('prograde', helpers.radianToDegrees(ship.getCartesianPrograde()).round())
-      this.updateStat('r', ship.pos.r.round().dividedBy(1000) + 'km')
-      this.updateStat('phi', helpers.radianToDegrees(ship.pos.phi).round())
-      this.updateStat('heading', helpers.radianToDegrees(ship.heading).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
+      this.updateStat('r', ship.getDistanceFromParent(t).round().dividedBy(1000) + 'km')
+      this.updateStat('phi', helpers.radianToDegrees(ship.getCartesianAngle()).round())
+      this.updateStat('heading', helpers.radianToDegrees(ship.getHeading(t)).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
       this.updateStat('message', this.getMessage())
       this.updateStat('ap', ship.getApoapsis().round().dividedBy(1000) + 'km')
       this.updateStat('pe', ship.getPeriapsis().round().dividedBy(1000) + 'km')
-      this.updateStat('gamma', helpers.radianToDegrees(ship.pos.phi.minus(ship.getCartesianPrograde())).round())
+      this.updateStat('gamma', helpers.radianToDegrees(ship.getZenithAngle()).round())
+      this.updateStat('true_anom', helpers.radianToDegrees(ship.getTrueAnomaly(t)).round())
+      this.updateStat('flight_path', helpers.radianToDegrees(ship.getFlightPathAngle(t)).round())
       this.updateStat('ecc', helpers.roundTo(ship.getEccentricity(), 4))
 
       this.last_run = now
@@ -75,7 +81,7 @@
     }
 
     klass.prototype.updateStat = function(panel_id, stat, title) {
-      this.getPanelFor(panel_id).html(stat)
+      this.getPanelFor(panel_id).html('' + stat)
       this.getPanelFor(panel_id).prop('title', title)
     }
 

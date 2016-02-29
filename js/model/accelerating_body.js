@@ -44,7 +44,7 @@
           r     = this.getDistanceFromParent(),
           theta = Math.acos(a.times(Decimal.ONE.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
 
-      if (this.getFlightPathAngle() < 0) theta = -theta
+      if (this.getFlightPathAngle().lt(0)) theta = -theta
 
       return new Decimal(theta)
     },
@@ -65,10 +65,16 @@
       return p1.times(p2).plus(p3).sqrt()
     },
     getFlightPathAngle: function() {
-      return this.getZenithAngle().times(-1).plus(Math.PI / 2)
+      var perpendicular = Math.PI / 2
+      if (!this.orbitIsClockwise()) perpendicular = -perpendicular
+
+      return this.getZenithAngle().plus(perpendicular)
+    },
+    orbitIsClockwise: function() {
+      return this.getZenithAngle().lt(0)
     },
     getZenithAngle: function() {
-      return helpers.clampRadians(this.getCartesianPrograde().minus(this.pos.phi))
+      return helpers.clampRadians(this.getCartesianPrograde().minus(this.getCartesianAngle()))
     },
     getCartesianAngle: function(t) {
       return this.pos.phi

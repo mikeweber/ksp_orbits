@@ -183,23 +183,39 @@ function runDunaIntercept(player, name, launch_time, $) {
           player.sim.setTickSize(1)
 
           var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
-            var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(300))
+            var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(600))
             var maneuver_angle = ship.getArgumentOfPeriapsis(t).plus(Math.PI / 2)
             var msg = 'Lowered Periapsis. Coasting to Periapsis (t+' + time_of_pe.round() + '). (resuming sim speed)'
             logger.logShipTelemetry(ship, t, msg)
             status_tracker.setMessage(msg)
             player.sim.setTickSize(orig_tick_size)
 
-            var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(300) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
-              var target_ap = 5e5
-              var msg = 'At Periapsis. Circularizing orbit to ' + target_ap + '.'
+            var slow_sim_on_approach = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(3e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
+              orig_tick_size = player.sim.getTickSize()
+              player.sim.setTickSize(8)
+              var msg = 'Approaching Duna. (slowing sim)'
               logger.logShipTelemetry(ship, t, msg)
               status_tracker.setMessage(msg)
 
-              var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) }, 0, false, 0).done(function(status_tracker, ship, t) {
-                var msg = 'Apoapsis lowered.'
+              var slow_sim_more = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(1e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
+                orig_tick_size = player.sim.getTickSize()
+                player.sim.setTickSize(1)
+                var msg = 'Approaching Duna. (slowing sim more)'
                 logger.logShipTelemetry(ship, t, msg)
                 status_tracker.setMessage(msg)
+
+                var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(600) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
+                  var target_ap = 8e5
+                  var msg = 'Approaching Periapsis maneuver. Circularizing orbit to ' + target_ap + 'm.'
+                  logger.logShipTelemetry(ship, t, msg)
+                  status_tracker.setMessage(msg)
+
+                  var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) || ship.getTrueAnomaly().gt(Math.PI / 2) || ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker, ship, t) {
+                    var msg = 'Apoapsis lowered.'
+                    logger.logShipTelemetry(ship, t, msg)
+                    status_tracker.setMessage(msg)
+                  })
+                })
               })
             })
           })
