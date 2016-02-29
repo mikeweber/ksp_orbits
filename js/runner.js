@@ -197,8 +197,7 @@ function runDunaIntercept(player, name, launch_time, $) {
               status_tracker.setMessage(msg)
 
               var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) }, 0, false, 0).done(function(status_tracker, ship, t) {
-                player.sim.setTickSize(orig_tick_size)
-                var msg = 'Apoapsis lowered. (resuming sim speed)'
+                var msg = 'Apoapsis lowered.'
                 logger.logShipTelemetry(ship, t, msg)
                 status_tracker.setMessage(msg)
               })
