@@ -184,10 +184,11 @@ function runDunaIntercept(player, name, launch_time, $) {
 
           var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
             var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(300))
-            var maneuver_angle = ship.getArgumentOfPeriapsis(t).minus(Math.PI)
+            var maneuver_angle = ship.getArgumentOfPeriapsis(t).plus(Math.PI / 2)
             var msg = 'Lowered Periapsis. Coasting to Periapsis (t+' + time_of_pe.round() + '). (resuming sim speed)'
             logger.logShipTelemetry(ship, t, msg)
             status_tracker.setMessage(msg)
+            player.sim.setTickSize(orig_tick_size)
 
             var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(300) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
               var target_ap = 5e5
