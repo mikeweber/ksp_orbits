@@ -17,3 +17,4 @@ A 2D [Kerbal Space Program](http://kerbalspaceprogram.com) simulator that is use
 * Add parabolic and hyperbolic orbits to conic renderer
 * Add rest of planets and moons
 * Add panning and zooming directly with mouse
+* Automatically decrease step size for objects being calculated in cartesian coordinates when the throttle is set to 0 and the energy of the orbit changes too much

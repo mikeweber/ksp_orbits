@@ -152,7 +152,7 @@ function runDunaIntercept(player, name, launch_time, $) {
   })
 
   var duna_intercept = plan.addSOIChangeManeuver(player.sim.getBody('Duna'), Math.PI, false, 1).done(function(status_tracker, ship, t) {
-    var msg = 'Reached Duna\'s SOI.'
+    var msg = 'Reached Duna\'s SOI. Lowering Apoapsis.'
     logger.logShipTelemetry(ship, t, msg)
     status_tracker.setMessage(msg)
   })
@@ -160,38 +160,44 @@ function runDunaIntercept(player, name, launch_time, $) {
   duna_intercept.done(function(status_tracker, ship, t) {
     var duna_circularization = plan.addManeuver(function(t, ship) {
       var e = ship.getEccentricity()
-      return e.gt(0) && e.lt(1) && ship.getApoapsis().lt(ship.getParent().getSOI())
-    }, 0, false, 0).done(function(status_tracker, ship, t) {
-      var msg = 'Duna SOI capture complete. Coasting to Apoapsis.'
+      return e.gt(0) && e.lt(1) && ship.getApoapsis().lt(2e7)
+    }, ship.getCartesianAngle(t), true, 1).done(function(status_tracker, ship, t) {
+      var msg = 'Raising Periapsis. (slowing sim)'
       logger.logShipTelemetry(ship, t, msg)
       status_tracker.setMessage(msg)
+      var orig_tick_size = player.sim.getTickSize()
+      player.sim.setTickSize(1)
 
-      var time_of_ap = t.plus(ship.timeToApoapsis(t))
-      var duna_coast_to_ap = plan.addManeuver(function(t, ship) { return t.gte(time_of_ap) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
-        msg = 'At Apoapsis. Lowering Periapsis.'
+      var duna_raise_pe = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().gt(5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
+        player.sim.setTickSize(orig_tick_size)
+        var time_of_ap = t.plus(ship.timeToApoapsis(t))
+        var msg = 'Duna SOI capture complete. Coasting to Apoapsis (t+' + time_of_ap.round() + ').'
         logger.logShipTelemetry(ship, t, msg)
         status_tracker.setMessage(msg)
 
-        var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker, ship, t) {
-          msg = 'Lowered Periapsis. Coasting to Periapsis.'
+        var duna_coast_to_ap = plan.addManeuver(function(t, ship) { return t.gte(time_of_ap) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
+          var msg = 'At Apoapsis. Lowering Periapsis. (slowing sim)'
           logger.logShipTelemetry(ship, t, msg)
           status_tracker.setMessage(msg)
+          orig_tick_size = player.sim.getTickSize()
+          player.sim.setTickSize(1)
 
-          var slowing_sim = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(1.0e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
-            player.sim.setTickSize(1)
-            msg = 'Approaching Duna; Slowing simulation for better accuracy.'
+          var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
+            var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(300))
+            var maneuver_angle = ship.getArgumentOfPeriapsis(t).minus(Math.PI)
+            var msg = 'Lowered Periapsis. Coasting to Periapsis (t+' + time_of_pe.round() + '). (resuming sim speed)'
             logger.logShipTelemetry(ship, t, msg)
             status_tracker.setMessage(msg)
 
-            var time_of_pe = ship.timeToPeriapsis(t)
-            var lower_apoapsis = plan.addManeuver(function(t, ship) { return t.gte(time_of_pe) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
-              msg = 'At Periapsis. Circularizing orbit.'
+            var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(300) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
+              var target_ap = 5e5
+              var msg = 'At Periapsis. Circularizing orbit to ' + target_ap + '.'
               logger.logShipTelemetry(ship, t, msg)
               status_tracker.setMessage(msg)
 
-              var starting_pe = ship.getPeriapsis()
-              var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(starting_pe.plus(10000)) }, 0, false, 0).done(function(status_tracker, ship, t) {
-                msg = 'Apoapsis lowered.'
+              var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) }, 0, false, 0).done(function(status_tracker, ship, t) {
+                player.sim.setTickSize(orig_tick_size)
+                var msg = 'Apoapsis lowered. (resuming sim speed)'
                 logger.logShipTelemetry(ship, t, msg)
                 status_tracker.setMessage(msg)
               })
@@ -201,67 +207,6 @@ function runDunaIntercept(player, name, launch_time, $) {
       })
     })
   })
-
-
-  /*
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.03e5) }, Math.PI, false, 1).done(function(status_tracker) {
-    status_tracker.setMessage('Decelerating on approach to Duna')
-  })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(3.9e5) }, 0, true, 1).done(function(status_tracker, ship) {
-    ship.setHeading(player.sim.getBody('Duna').getCartesianPrograde(player.sim.t).plus(Math.PI * 0.45), true)
-    status_tracker.setMessage('Matching velocity and vector with planet')
-  })
-  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(4.2e5) }, 0, false, 0).done(function(status_tracker) {
-    status_tracker.setMessage('Waiting for intercept...')
-  })
-  plan.addSOIChangeManeuver(player.sim.getBody('Kerbol'), Math.PI * 0.727, true, 1).done(function(status_tracker) {
-    status_tracker.setMessage('Left Kerbin SOI; setting course')
-  })
-  plan.addSOIChangeManeuver(player.sim.getBody('Duna'), Math.PI, false, 1).done(function(status_tracker, ship, t) {
-    var i, soi_change_time = t, orig_tick_size = player.sim.getTickSize()
-    status_tracker.setMessage('Near destination; Reverse thrusters full in attempt to get captured')
-
-    plan.addManeuver(function(t, ship) { var e = ship.getEccentricity(); return e > 0 && e < 1 }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
-      status_tracker.setMessage('Elliptical orbit achieved. Slowing simulation for better accuracy')
-      player.sim.setTickSize(1)
-
-      plan.addManeuver(function(t, ship) { var pe = ship.getPeriapsis(); return pe.gt(0) && pe.lt(4.4e6) }, 0, false, 0).done(function(status_tracker) {
-        status_tracker.setMessage('First capture complete; Waiting for periapsis')
-        player.sim.setTickSize(orig_tick_size)
-        var time_of_pe = t.plus(ship.getOrbitalPeriod().times((1 - (ship.getMeanAnomaly(t).plus(Math.PI)) / (2 * Math.PI)) % 1))
-
-        plan.addManeuver(function(t, ship) { return time_of_pe.lt(t.plus(player.sim.getTickSize())) }, -Math.PI, false, 1).done(function(status_tracker) {
-          var orig_tick_size = player.sim.getTickSize()
-          player.sim.setTickSize(1)
-          status_tracker.setMessage('Slowing sim; waiting for periapsis.')
-
-          plan.addManeuver(function(t, ship) { return time_of_pe.lt(t) }, -Math.PI, false, 1).done(function(status_tracker) {
-            status_tracker.setMessage('Lowering orbit again')
-
-            plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker) {
-              var time_of_pe2 = t.plus(ship.getOrbitalPeriod().times((2 * Math.PI - ship.getClampedMeanAnomaly(t)) / (2 * Math.PI)))
-              status_tracker.setMessage('Second step of capture complete; Waiting for periapsis.')
-              player.sim.setTickSize(orig_tick_size)
-              plan.addManeuver(function(t, ship) { return time_of_pe2.lt(t.plus(player.sim.getTickSize())) }, Math.PI, false, 1).done(function(status_tracker) {
-                var orig_tick_size2 = player.sim.getTickSize()
-                player.sim.setTickSize(1)
-                status_tracker.setMessage('Slowing sim; waiting for periapsis.')
-
-                plan.addManeuver(function(t, ship) { return time_of_pe2.lt(t) }, Math.PI, false, 1).done(function(status_tracker) {
-                  status_tracker.setMessage('Final parking orbit maneuver.')
-                  plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker) {
-                    player.sim.setTickSize(orig_tick_size)
-                    status_tracker.setMessage('Parking orbit reached on ' + player.sim.getKerbalDate() + '. (t+ ' + t + ')')
-                  })
-                })
-              })
-            })
-          })
-        })
-      })
-    })
-  })
-  */
 }
 
 

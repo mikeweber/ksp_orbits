@@ -16,7 +16,7 @@
           debugData(body.pos.phi.times(180).dividedBy(Math.PI), 'phi')
           debugData(body.v,       'vel')
           debugData(body.getCartesianPrograde().times(180).dividedBy(Math.PI), 'prograde')
-          debugData(body.getHeading().times(180).dividedBy(Math.PI), 'heading')
+          debugData(body.getHeading(t).times(180).dividedBy(Math.PI), 'heading')
           var kd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Kerbin'), body, t),
               dd = window.CelestialObject.calcObjectDistance(sim.getPlanet('Duna'), body, t)
           debugData(kd, 'kdist')

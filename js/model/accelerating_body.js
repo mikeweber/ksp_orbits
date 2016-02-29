@@ -1,10 +1,13 @@
 (function(namespace, helpers) {
   namespace.AcceleratingBody = {
-    getHeading: function() {
+    getHeading: function(t) {
+      var heading = this.heading
+      if (typeof heading === 'function') heading(t)
+
       if (this.use_absolute_heading) {
-        return this.heading
+        return heading
       } else {
-        return this.getCartesianPrograde().plus(this.heading)
+        return this.getCartesianPrograde().plus(heading)
       }
     },
     updateInitialMeanAnomaly: function(t) {
@@ -41,7 +44,7 @@
           r     = this.getDistanceFromParent(),
           theta = Math.acos(a.times(Decimal.ONE.minus(e.times(e))).minus(r).dividedBy(e.times(r)))
 
-      if (this.getZenithAngle() > 0) theta = -theta
+      if (this.getFlightPathAngle() < 0) theta = -theta
 
       return new Decimal(theta)
     },

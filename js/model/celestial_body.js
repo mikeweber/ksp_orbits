@@ -151,12 +151,12 @@ var last = {};
       return this.launch_time
     }
 
-    klass.prototype.getHeadingX = function() {
-      return new Decimal(Math.cos(this.getHeading()))
+    klass.prototype.getHeadingX = function(t) {
+      return new Decimal(Math.cos(this.getHeading(t)))
     }
 
-    klass.prototype.getHeadingY = function() {
-      return new Decimal(Math.sin(this.getHeading()))
+    klass.prototype.getHeadingY = function(t) {
+      return new Decimal(Math.sin(this.getHeading(t)))
     }
 
     klass.prototype.getCartesianProgradeX = function(t) {

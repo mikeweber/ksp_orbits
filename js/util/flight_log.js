@@ -38,7 +38,7 @@
     }
 
     function shipTelemetry(ship, t) {
-      return '(' + ship.getParent().name + ', ' + ship.getRadius() + ', ' + ship.getVelocity() + ', { r: ' + ship.getDistanceFromParent(t) + ', phi: ' + ship.getArgumentOfPeriapsis(t).plus(ship.getTrueAnomaly(t)) + ' }, ' + ship.getCartesianAngle(t) + ', ' + ship.getHeading() + ', ' + ship.isHeadingAbsolute() + ')'
+      return '(' + ship.getParent().name + ', ' + ship.getRadius() + ', ' + ship.getVelocity() + ', { r: ' + ship.getDistanceFromParent(t) + ', phi: ' + ship.getArgumentOfPeriapsis(t).plus(ship.getTrueAnomaly(t)) + ' }, ' + ship.getCartesianAngle(t) + ', ' + ship.getHeading(t) + ', ' + ship.isHeadingAbsolute() + ')'
     }
 
     makeObservable.bind(this)(klass)

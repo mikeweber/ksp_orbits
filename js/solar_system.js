@@ -3,7 +3,7 @@
     var klass = function SolarSystem () {
       this.sun    = new Sun(1.1723328e18, 2.616e8),
       this.kerbin = new Planet('Kerbin', 6e5,   3.5316e12,    13599840256, -Math.PI,       0,                0,    8.4159286e7),
-      this.duna   = new Planet('Duna',   3.2e5, 3.0136321e11, 20726155264, -Math.PI,       Math.PI * 3 / 4, 0.05, 4.7921949e7),
+      this.duna   = new Planet('Duna',   3.2e5, 3.0136321e11, 20726155264, -Math.PI,       Math.PI * 3 / 4,  0.05, 4.7921949e7),
       this.mun    = new Planet('Mün',    2.0e5, 6.5138398e10, 1.2e7,       -Math.PI * 1.7, 0,                0,    2.4295591e6),
       this.minmus = new Planet('Minmus', 6.0e4, 1.7658000e9,  4.7e7,       -Math.PI * 0.9, 0,                0,    2.2474284e6),
       this.ike    = new Planet('Ike',    1.3e5, 1.8568369e10, 3.2e6,       -Math.PI * 1.7, 0,                0.03, 1.0495989e6)
