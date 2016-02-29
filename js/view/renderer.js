@@ -76,7 +76,6 @@
     }
 
     klass.prototype.zoomTo = function(zoom) {
-      if (zoom.lt(1))     zoom = new Decimal(1)
       if (zoom.gt(35000)) zoom = new Decimal(35000)
       this.zoom = new Decimal(zoom)
     }

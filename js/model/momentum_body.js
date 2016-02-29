@@ -1,4 +1,6 @@
 (function(namespace, helpers) {
+  var eccentric_anomaly_tolerance = 1e-10, max_eccentricy_anomaly_tries = 30
+
   namespace.MomentumBody = {
     getHeading: function() {
       return 0
@@ -55,14 +57,25 @@
       if (typeof e === 'undefined') e = this.getEccentricity()
       if (typeof E === 'undefined') E = M
       if (typeof tries === 'undefined') tries = 1
+      if (e.gt(1)) return this.getHyperbolicEccentricAnomaly(M, e, E)
 
-      M = helpers.clampRadians(M)
       var F = E.minus(e.times(Math.sin(M))).minus(M)
 
-      if (tries > 30 || F.abs().lt(0.0001)) {
+      if (tries > max_eccentricy_anomaly_tries || F.abs().lt(eccentric_anomaly_tolerance)) {
         return E
       } else {
         E = E.minus(F.dividedBy(Decimal.ONE.minus(e.times(Math.cos(E)))))
+        return this.getEccentricAnomaly(M, e, E, tries + 1)
+      }
+    },
+    getHyperbolicEccentricAnomaly: function(M, e, H, tries) {
+      // http://control.asu.edu/Classes/MAE462/462Lecture05.pdf slide 18
+      var diff = H.minus(e.times(Math.sinh(M)).minus(M))
+
+      if (tries > max_eccentricy_anomaly_tries || diff.abs().lt(eccentric_anomaly_tolerance)) {
+        return H
+      } else {
+        H = H.plus(M.minus(e.times(Math.sinh(H))).plus(H).dividedBy(e.times(Math.cosh(H)).minus(1)))
         return this.getEccentricAnomaly(M, e, E, tries + 1)
       }
     },

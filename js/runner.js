@@ -143,9 +143,8 @@ function runDunaIntercept(player, name, launch_time, $) {
     status_tracker.setMessage(msg)
   })
 
-  var begin_deceleration
   aim_for_duna.done(function() {
-    begin_deceleration = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(2.005e5) }, Math.PI + Math.PI * 0.539, true, 1).done(function(status_tracker, ship, t) {
+    plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(2.005e5) }, Math.PI + Math.PI * 0.539, true, 1).done(function(status_tracker, ship, t) {
       var msg = 'Decelerating on approach to Duna.'
       logger.logShipTelemetry(ship, t, msg)
       status_tracker.setMessage(msg)
@@ -158,17 +157,51 @@ function runDunaIntercept(player, name, launch_time, $) {
     status_tracker.setMessage(msg)
   })
 
-  var duna_circularization
   duna_intercept.done(function(status_tracker, ship, t) {
-    duna_circularization = plan.addManeuver(function(t, ship) {
+    var duna_circularization = plan.addManeuver(function(t, ship) {
       var e = ship.getEccentricity()
       return e.gt(0) && e.lt(1) && ship.getApoapsis().lt(ship.getParent().getSOI())
     }, 0, false, 0).done(function(status_tracker, ship, t) {
-      var msg = 'Duna SOI capture complete.'
+      var msg = 'Duna SOI capture complete. Coasting to Apoapsis.'
       logger.logShipTelemetry(ship, t, msg)
       status_tracker.setMessage(msg)
+
+      var time_of_ap = t.plus(ship.timeToApoapsis(t))
+      var duna_coast_to_ap = plan.addManeuver(function(t, ship) { return t.gte(time_of_ap) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
+        msg = 'At Apoapsis. Lowering Periapsis.'
+        logger.logShipTelemetry(ship, t, msg)
+        status_tracker.setMessage(msg)
+
+        var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(500000) }, 0, false, 0).done(function(status_tracker, ship, t) {
+          msg = 'Lowered Periapsis. Coasting to Periapsis.'
+          logger.logShipTelemetry(ship, t, msg)
+          status_tracker.setMessage(msg)
+
+          var slowing_sim = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(1.0e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
+            player.sim.setTickSize(1)
+            msg = 'Approaching Duna; Slowing simulation for better accuracy.'
+            logger.logShipTelemetry(ship, t, msg)
+            status_tracker.setMessage(msg)
+
+            var time_of_pe = ship.timeToPeriapsis(t)
+            var lower_apoapsis = plan.addManeuver(function(t, ship) { return t.gte(time_of_pe) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
+              msg = 'At Periapsis. Circularizing orbit.'
+              logger.logShipTelemetry(ship, t, msg)
+              status_tracker.setMessage(msg)
+
+              var starting_pe = ship.getPeriapsis()
+              var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(starting_pe.plus(10000)) }, 0, false, 0).done(function(status_tracker, ship, t) {
+                msg = 'Apoapsis lowered.'
+                logger.logShipTelemetry(ship, t, msg)
+                status_tracker.setMessage(msg)
+              })
+            })
+          })
+        })
+      })
     })
   })
+
 
   /*
   plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).greaterThan(2.03e5) }, Math.PI, false, 1).done(function(status_tracker) {

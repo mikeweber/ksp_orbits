@@ -79,6 +79,22 @@ var last = {};
       return this.getSemiMajorAxis().toPower(3).dividedBy(this.getSystemMu()).sqrt().times((2 * Math.PI))
     }
 
+    klass.prototype.timeToPeriapsis = function(t) {
+      if (this.getEccentricity().gt(1)) {
+        return this.getSemiMajorAxis().toPower(3).times(-1).dividedBy(this.getSystemMu()).sqrt().times(this.getMeanAnomaly(t))
+      } else {
+        return this.getMeanAnomaly(t).times(this.getOrbitalPeriod()).dividedBy(Math.TAU)
+      }
+    }
+
+    klass.prototype.timeToApoapsis = function(t) {
+      if (this.getEccentricity().gt(1)) {
+        return new Decimal()
+      } else {
+        return this.getOrbitalPeriod().times(((Math.PI - this.getMeanAnomaly(t)) / Math.TAU) % 1)
+      }
+    }
+
     klass.prototype.getPositionAtTime = function(t) {
       var one  = new Decimal(1),
           M    = this.getMeanAnomaly(t),
@@ -97,7 +113,9 @@ var last = {};
     }
 
     klass.prototype.getMeanMotion = function() {
-      return this.getSystemMu().dividedBy(this.getSemiMajorAxis().toPower(3)).sqrt()
+      // Use the absolute value of the semi-major axis so the mean motion equation
+      // continues to work for hyperbolic orbits
+      return this.getSystemMu().dividedBy(this.getSemiMajorAxis().abs().toPower(3)).sqrt()
     }
 
     klass.prototype.getInitMeanAnomaly = function() {

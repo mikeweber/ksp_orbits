@@ -11,23 +11,29 @@
       this.setInitMeanAnomaly(this.getMeanAnomaly().minus(this.getMeanMotion().times(t)))
     },
     getMeanAnomaly: function() {
-      var E = this.getEccentricAnomaly(),
-          e = this.getEccentricity()
+      var e = this.getEccentricity(),
+          E = this.getEccentricAnomaly(),
+          fn
 
-      return E.minus(e.times(Math.sin(E)))
-    },
-    getEccentricAnomaly: function() {
-      var e    = this.getEccentricity(),
-          f    = this.getTrueAnomaly(),
-          cosf = Math.cos(f),
-          sinE = Math.sin(f) * Math.sqrt(1 - e * e) / (1 + e * cosf),
-          cosE = e.plus(cosf).dividedBy(e.times(cosf).plus(1))
-
-      var E = new Decimal(Math.atan2(sinE, cosE))
-      if (e >= 1) {
+      if (e.gt(1)) {
+        fn = this.getCalculator().getHyperbolicMeanAnomaly
+      } else {
+        fn = this.getCalculator().getMeanAnomaly
       }
 
-      return E
+      return fn(e, E)
+    },
+    getEccentricAnomaly: function() {
+      var e = this.getEccentricity(),
+          f = this.getTrueAnomaly()
+
+      if (e.gt(1)) {
+        fn = this.getCalculator().getHyperbolicAnomaly
+      } else {
+        fn = this.getCalculator().getEccentricAnomaly
+      }
+
+      return fn(e, f)
     },
     getTrueAnomaly: function() {
       var a     = this.getSemiMajorAxis(),
@@ -75,6 +81,27 @@
     },
     getArgumentOfPeriapsis: function(t) {
       return this.pos.phi.plus(this.getTrueAnomaly(t))
+    },
+    getCalculator: function(e, f) {
+      return {
+        getHyperbolicMeanAnomaly: function(e, E) {
+          return e.times(Math.sinh(E)).minus(E)
+        },
+        getMeanAnomaly: function(e, E) {
+          return E.minus(e.times(Math.sin(E)))
+        },
+        getEccentricAnomaly: function(e, f) {
+          var cosf = Math.cos(f),
+              sinE = Math.sin(f) * Math.sqrt(1 - e * e) / (1 + e * cosf),
+              cosE = e.plus(cosf).dividedBy(e.times(cosf).plus(1))
+
+          return new Decimal(Math.atan2(sinE, cosE))
+        },
+        getHyperbolicAnomaly: function(e, f) {
+          // http://control.asu.edu/Classes/MAE462/462Lecture05.pdf slide 24/31
+          return new Decimal(Math.atanh(e.minus(1).dividedBy(e.plus(1)).sqrt().times(Math.tan(f.dividedBy(2)))))
+        }
+      }
     }
   }
 })(FlightPlanner.Model, FlightPlanner.Helper.Helper)
