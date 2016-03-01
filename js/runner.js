@@ -1,15 +1,18 @@
 /* globals FlightPlanner Decimal jQuery */
 
-var start_time = 0
 // for Duna Intercept
-var launch_time = 6.0e6
-start_time = launch_time - 100
+var launch_time = 6.0e6,
+    return_launch_time = 6688564 + 8 * 6 * 3600
+var start_time = launch_time - 100
+var return_start_time = return_launch_time - 100
 
-var player = initUniverse()
+var player = initUniverse(return_start_time)
 player.zoomTo(new Decimal(200))
 player.run()
 addListeners(jQuery, player)
-runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
+// runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
+
+runDunaReturn(player, 'Duna Mission', return_launch_time, jQuery)
 
 function followShipAndTarget(ship, final_target, player, t) {
   'use strict'
@@ -51,7 +54,7 @@ function followShipAndTarget(ship, final_target, player, t) {
   player.observe('after:trackPrev',     function() { player.renderer.unobserve('before:render', follow) })
 }
 
-function initUniverse() {
+function initUniverse(start_sim_at) {
   'use strict'
 
   var system    = new FlightPlanner.SolarSystem(),
@@ -76,7 +79,7 @@ function initUniverse() {
       canvas_dimensions = { width: 700, height: 700 },
       bg        = $('#background')[0],
       renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
-      sim       = new FlightPlanner.Controller.Simulator(start_time, system, 64),
+      sim       = new FlightPlanner.Controller.Simulator(start_sim_at, system, 64),
       player    = new FlightPlanner.Controller.Player(sim, renderer)
 
   renderer.registerRenderer(new FlightPlanner.View.BackgroundRenderer(bg))
@@ -183,41 +186,100 @@ function runDunaIntercept(player, name, launch_time, $) {
           player.sim.setTickSize(1)
 
           var duna_orbit_lowered = plan.addManeuver(function(t, ship) { return ship.getPeriapsis().lt(5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
-            var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(600))
+            var time_of_pe = t.plus(ship.timeToPeriapsis(t).minus(300))
             var maneuver_angle = ship.getArgumentOfPeriapsis(t).plus(Math.PI / 2)
             var msg = 'Lowered Periapsis. Coasting to Periapsis (t+' + time_of_pe.round() + '). (resuming sim speed)'
             logger.logShipTelemetry(ship, t, msg)
             status_tracker.setMessage(msg)
             player.sim.setTickSize(orig_tick_size)
 
-            var slow_sim_on_approach = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(3e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
-              orig_tick_size = player.sim.getTickSize()
-              player.sim.setTickSize(8)
-              var msg = 'Approaching Duna. (slowing sim)'
+            var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(300) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
+              var target_ap = 5e5
+              var msg = 'At Periapsis. Circularizing orbit to ' + target_ap + '.'
               logger.logShipTelemetry(ship, t, msg)
               status_tracker.setMessage(msg)
 
-              var slow_sim_more = plan.addManeuver(function(t, ship) { return ship.getDistanceFromParent().lt(1e6) }, 0, false, 0).done(function(status_tracker, ship, t) {
-                orig_tick_size = player.sim.getTickSize()
-                player.sim.setTickSize(1)
-                var msg = 'Approaching Duna. (slowing sim more)'
+              var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) }, 0, false, 0).done(function(status_tracker, ship, t) {
+                var msg = 'Apoapsis lowered.'
                 logger.logShipTelemetry(ship, t, msg)
                 status_tracker.setMessage(msg)
-
-                var lower_apoapsis = plan.addManeuver(function(t, ship) { return ship.timeToPeriapsis(t).lt(600) }, maneuver_angle, true, 1).done(function(status_tracker, ship, t) {
-                  var target_ap = 8e5
-                  var msg = 'Approaching Periapsis maneuver. Circularizing orbit to ' + target_ap + 'm.'
-                  logger.logShipTelemetry(ship, t, msg)
-                  status_tracker.setMessage(msg)
-
-                  var lowered_apoapsis = plan.addManeuver(function(t, ship) { return ship.getApoapsis().lte(target_ap) || ship.getTrueAnomaly().gt(Math.PI / 2) || ship.getEccentricity().lt(0.1) }, 0, false, 0).done(function(status_tracker, ship, t) {
-                    var msg = 'Apoapsis lowered.'
-                    logger.logShipTelemetry(ship, t, msg)
-                    status_tracker.setMessage(msg)
-                  })
-                })
               })
             })
+          })
+        })
+      })
+    })
+  })
+}
+
+function runDunaReturn(player, name, launch_time, $) {
+  'use strict'
+
+  var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Duna'),
+      kerbol = player.sim.getBody('Kerbol'),
+      duna = player.sim.getBody('Duna'),
+      kerbin = player.sim.getBody('Kerbin')
+  $('#status').append(stat.getPanel())
+
+  var logger = new FlightPlanner.Util.FlightLog()
+  var log_panel = new FlightPlanner.View.LogPanel(logger)
+  $('#control-container').after(log_panel.getPanel())
+
+  var plan = new FlightPlanner.Model.FlightPlan(player, name, stat, launch_time).scheduleLaunchFromPlanet(
+    duna,
+    280,
+    {
+      throttle:         1,
+      max_accel:        0.2,
+      fuel_consumption: 0.19,
+      initial_angle:    Math.PI / 2,
+      heading:          0,
+      absolute_heading: false,
+      target:           kerbin,
+      clockwise_orbit:  true
+    }
+  )
+
+  function addShipRenderer(ship) {
+    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
+        ship_cr = new FlightPlanner.View.ConicRenderer($('#flightpaths')[0], ship)
+    player.renderer.registerRenderer(ship_r)
+    player.renderer.registerRenderer(ship_cr)
+    plan.unobserve('after:blastOff', addShipRenderer)
+  }
+
+  plan.observe('after:blastOff', addShipRenderer)
+  plan.observe('after:blastOff', function(ship, t) {
+    logger.logShipTelemetry(ship, t, 'Blast off')
+    followShipAndTarget(ship, kerbin, player, t)
+  })
+
+  var aim_for_kerbin = plan.addSOIChangeManeuver(kerbol, -1.38, true, 1).done(function(status_tracker, ship, t) {
+    var msg = 'Left Duna SOI; aiming to where Kerbin is going to be.'
+    logger.logShipTelemetry(ship, t, msg)
+    status_tracker.setMessage(msg)
+  })
+
+  aim_for_kerbin.done(function() {
+    plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(1.76e5) }, Math.PI / 2, true, 1).done(function(status_tracker, ship, t) {
+      var msg = 'Halfway point. Beginning deceleration.'
+      logger.logShipTelemetry(ship, t, msg)
+      status_tracker.setMessage(msg)
+
+      var circularize_before_kerbin_intercept = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(3.3e5) }, kerbin.getCartesianPrograde(t).minus(0.3), true, 1).done(function(status_tracker, ship, t) {
+        var msg = 'Attempting to match speed with Kerbin.'
+        logger.logShipTelemetry(ship, t, msg)
+        status_tracker.setMessage(msg)
+
+        var catch_up_with_kerbin = plan.addSOIChangeManeuver(kerbin, -Math.PI, false, 1).done(function(status_tracker, ship, t) {
+          var msg = 'Entered Kerbin\'s SOI. Attempting capture.'
+          logger.logShipTelemetry(ship, t, msg)
+          status_tracker.setMessage(msg)
+
+          var complete_capture = plan.addManeuver(function(t, ship) { var ap = ship.getApoapsis(); return ap.gt(0) && ap.lt(kerbin.getSOI()) }, 0, false, 0).done(function(status_tracker, ship, t) {
+            var msg = 'Capture complete'
+            logger.logShipTelemetry(ship, t, msg)
+            status_tracker.setMessage(msg)
           })
         })
       })

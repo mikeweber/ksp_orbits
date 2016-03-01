@@ -29,6 +29,7 @@
         var alt          = planet.getRadius().plus(initial_altitude * 1000),
             v            = planet.mu.times(new Decimal(1).dividedBy(alt)).sqrt(),
             init_heading = new Decimal(launch_data.initial_angle + Math.PI * 0.5)
+        if (launch_data.clockwise_orbit) v = v.times(-1)
         this.ship.setVelocity(v)
         this.ship.setPositionUsingPosition({ r: alt, phi: launch_data.initial_angle })
         this.ship.setCartesianPrograde(init_heading)
