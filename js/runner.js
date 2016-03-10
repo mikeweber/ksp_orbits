@@ -6,13 +6,14 @@ var launch_time = 6.0e6,
 var start_time = launch_time - 100
 var return_start_time = return_launch_time - 100
 
-var player = initUniverse(return_start_time)
+var player = initUniverse(start_time)
 player.zoomTo(new Decimal(200))
 player.run()
 addListeners(jQuery, player)
-// runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
+var duna_mission = runDunaIntercept(player, 'Duna Mission', launch_time, jQuery)
 
-runDunaReturn(player, 'Duna Mission', return_launch_time, jQuery)
+// runDunaReturn(player, duna_mission, return_launch_time, jQuery)
+// runDunaOrbit(player, 'Duna Mission', return_launch_time, jQuery)
 
 function followShipAndTarget(ship, final_target, player, t) {
   'use strict'
@@ -79,7 +80,7 @@ function initUniverse(start_sim_at) {
       canvas_dimensions = { width: 700, height: 700 },
       bg        = $('#background')[0],
       renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
-      sim       = new FlightPlanner.Controller.Simulator(start_sim_at, system, 64),
+      sim       = new FlightPlanner.Controller.Simulator(start_sim_at, system, 128),
       player    = new FlightPlanner.Controller.Player(sim, renderer)
 
   renderer.registerRenderer(new FlightPlanner.View.BackgroundRenderer(bg))
@@ -210,6 +211,8 @@ function runDunaIntercept(player, name, launch_time, $) {
       })
     })
   })
+
+  return plan.ship
 }
 
 function runDunaReturn(player, name, launch_time, $) {
@@ -287,6 +290,50 @@ function runDunaReturn(player, name, launch_time, $) {
   })
 }
 
+function runDunaOrbit(player, name, launch_time, $) {
+  'use strict'
+
+  var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Duna'),
+      kerbol = player.sim.getBody('Kerbol'),
+      duna = player.sim.getBody('Duna'),
+      kerbin = player.sim.getBody('Kerbin')
+  $('#status').append(stat.getPanel())
+
+  var logger = new FlightPlanner.Util.FlightLog()
+  var log_panel = new FlightPlanner.View.LogPanel(logger)
+  $('#control-container').after(log_panel.getPanel())
+
+  var plan = new FlightPlanner.Model.FlightPlan(player, name, stat, launch_time).scheduleLaunchFromPlanet(
+    duna,
+    280,
+    {
+      throttle:         1,
+      max_accel:        0.2,
+      fuel_consumption: 0.19,
+      initial_angle:    Math.PI / 2,
+      heading:          0,
+      absolute_heading: false,
+      target:           kerbin,
+      clockwise_orbit:  true
+    }
+  )
+
+  function addShipRenderer(ship) {
+    var ship_r  = new FlightPlanner.View.PlanetRenderer(ships, ship, '#FFFFFF', 2),
+        ship_cr = new FlightPlanner.View.ConicRenderer($('#flightpaths')[0], ship)
+    player.renderer.registerRenderer(ship_r)
+    player.renderer.registerRenderer(ship_cr)
+    plan.unobserve('after:blastOff', addShipRenderer)
+  }
+
+  plan.observe('after:blastOff', addShipRenderer)
+  plan.observe('after:blastOff', function(ship, t) {
+    logger.logShipTelemetry(ship, t, 'Blast off')
+    followShipAndTarget(ship, kerbin, player, t)
+  })
+
+  plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(600) }, 0, false, 0)
+}
 
 function addListeners($, player) {
   'use strict'

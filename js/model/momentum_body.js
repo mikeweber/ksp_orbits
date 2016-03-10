@@ -3,7 +3,7 @@
 
   namespace.MomentumBody = {
     getHeading: function() {
-      return 0
+      return new Decimal(0)
     },
     getCartesianPrograde: function(t) {
       return helpers.clampRadians(this.getCartesianAngle(t).plus(this.getFlightPathAngle(t)).plus(Math.PI / 2))
@@ -76,7 +76,7 @@
         return H
       } else {
         H = H.plus(M.minus(e.times(Math.sinh(H))).plus(H).dividedBy(e.times(Math.cosh(H)).minus(1)))
-        return this.getEccentricAnomaly(M, e, E, tries + 1)
+        return this.getEccentricAnomaly(M, e, H, tries + 1)
       }
     },
     // Do nothing since this should not change

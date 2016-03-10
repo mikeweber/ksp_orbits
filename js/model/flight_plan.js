@@ -86,7 +86,11 @@
     }
 
     klass.prototype.initShip = function() {
-      this.ship = new namespace.Ship(this.ship_name, 50, 0, { r: 0, phi: 0 }, 0, 0)
+      if (typeof this.ship_name === 'string') {
+        this.ship = new namespace.Ship(this.ship_name, 50, 0, { r: 0, phi: 0 }, 0, 0)
+      } else {
+        this.ship = this.ship_name
+      }
       this.ship.observe('after:step', function(t) {
         executeManeuvers(this.maneuvers, t)
         this.status_tracker.updateStatus.bind(this.status_tracker)(t, this.ship)

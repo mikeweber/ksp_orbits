@@ -22,7 +22,10 @@
         this.renderVisibleEllipseSegments(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
       } else if (e === 1) {
         var pe = this.scaleWorldToCanvasY(this.body.getPeriapsis())
-        this.renderParabola(coords, pe,this.body.getArgumentOfPeriapsis(t), style)
+        this.renderParabola(coords, pe, this.body.getArgumentOfPeriapsis(t), style)
+      } else {
+        var pe = this.scaleWorldToCanvasY(this.body.getPeriapsis())
+        this.renderHyperbola(coords, a, e, pe, this.body.getArgumentOfPeriapsis(t), style)
       }
     }
 

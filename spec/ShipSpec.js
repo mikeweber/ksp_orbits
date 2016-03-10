@@ -68,10 +68,20 @@ describe("Ship", function() {
 
     expect(ship.getMeanAnomaly(t)).toBeCloseTo(-0.018069764674722724, 5)
     expect(ship.getTrueAnomaly(t)).toBeCloseTo(-0.11286853026465728, 5)
-    expect(ship.getFlightPathAngle(t).toNumber()).toBeCloseTo(0.0702371261182862, 5)
+    expect(ship.getFlightPathAngle(t).toNumber()).toBeCloseTo(-0.0702371261182862, 5)
     expect(ship.getCartesianPrograde(t).toNumber()).toBeCloseTo(2.9585211285853155, 3)
     expect(ship.getVelocity(t)).toBeCloseTo(12461.17, 1)
 
+    ship.setThrottle(0, t)
+    // confirm that after switching momentum calculator, the parameters are still the same
+    expect(ship.getMeanAnomaly(t)).toBeCloseTo(-0.018069764674722724, 5)
+    expect(ship.getTrueAnomaly(t)).toBeCloseTo(-0.11286853026465728, 5)
+    expect(ship.getFlightPathAngle(t).toNumber()).toBeCloseTo(-0.0702371261182862, 5)
+    expect(ship.getCartesianPrograde(t).toNumber()).toBeCloseTo(2.9585211285853155, 3)
+    expect(ship.getVelocity(t)).toBeCloseTo(12461.17, 1)
+
+    // Set throttle back to full and continue
+    ship.setThrottle(1, t)
     // Step forward and switch to Duna SOI
     duna.step(t.plus(step_size), step_size)
     ship.step(t.plus(step_size), step_size)

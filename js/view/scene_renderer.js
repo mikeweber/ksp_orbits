@@ -29,53 +29,13 @@
       this.canvas  = canvas || renderer
     }
 
-    klass.prototype.renderEllipse = function(coords, a, e, pe, style) {
-      var context   = this.getContext(),
-          one       = new Decimal(1),
-          offcenter = a.times(e),
-          center    = { x: offcenter.times(-1), y: new Decimal(0) },
-          b         = a.toPower(2).times(one.minus(e.toPower(2))).sqrt(),
-          // source: http://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves
-          // A 4 pointed bezier curve uses a handle distance of 4*(sqrt(2)-1)/3 = 0.552284749831)
-          k         = 0.552284749831
-
-      context.save()
-      context.translate(coords.x, coords.y)
-      context.beginPath()
-      context.rotate(pe)
-      context.moveTo(center.x.plus(a), center.y)
-      context.bezierCurveTo(
-        center.x.plus(a),           center.y.plus(b.times(k)),
-        center.x.plus(a.times(k)),  center.y.plus(b),
-        center.x,                   center.y.plus(b)
-      )
-      context.bezierCurveTo(
-        center.x.minus(a.times(k)), center.y.plus(b),
-        center.x.minus(a),          center.y.plus(b.times(k)),
-        center.x.minus(a),          center.y
-      )
-      context.bezierCurveTo(
-        center.x.minus(a),          center.y.minus(b.times(k)),
-        center.x.minus(a.times(k)), center.y.minus(b),
-        center.x,                   center.y.minus(b)
-      )
-      context.bezierCurveTo(
-        center.x.plus(a.times(k)),  center.y.minus(b),
-        center.x.plus(a),           center.y.minus(b.times(k)),
-        center.x.plus(a),           center.y
-      )
-      context.strokeStyle = style.stroke_style
-      context.lineWidth   = style.line_width
-      context.stroke()
-      context.restore()
-    }
-
     klass.prototype.renderVisibleEllipseSegments = function(coords, a, e, pe, style) {
       var context   = this.getContext(),
-          one       = new Decimal(1),
           offcenter = a.times(e),
-          center    = { x: offcenter.times(-1).plus(coords.x), y: new Decimal(0).plus(coords.y) },
-          b         = a.toPower(2).times(one.minus(e.toPower(2))).sqrt(),
+          center    = { x: offcenter.times(-1).plus(coords.x), y: coords.y },
+          b         = a.toPower(2).times(Decimal.ONE.minus(e.toPower(2))).sqrt(),
+          // source: http://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves
+          // A 4 pointed bezier curve uses a handle distance of 4*(sqrt(2)-1)/3 = 0.552284749831)
           k         = 0.552284749831,
           nodes     = []
 
@@ -106,10 +66,10 @@
           curves = [curve1, curve2, curve3, curve4],
           rotated_curves = []
       for (var i = 0; i < curves.length; i++) {
-        var curve = curves[i],
+        var curve         = curves[i],
             rotated_curve = []
         for (var j = 0; j < curve.length; j = j + 2) {
-          var pt = { x: curve[j], y: curve[j + 1] },
+          var pt      = { x: curve[j], y: curve[j + 1] },
               rotated = rotate(pt, coords, pe)
 
           rotated_curve.push(rotated.x)
@@ -127,16 +87,48 @@
       context.restore()
     }
 
-    klass.prototype.renderHyperbola = function(coords, pe, pe_arg, style) {
+    klass.prototype.renderHyperbola = function(parent_coords, a, e, pe, pe_arg, style) {
       var context   = this.getContext(),
-          center    = { x: coords.x, y: coords.y },
-          dist_sq   = coords.x.minus(pe.x).toPower(2).plus(coords.y.minus(pe.y).toPower(2)),
-          a         = this.getSemiMajorAxis(),
-          b         = dist_sq.minus(a.times(a)).sqrt()
+          offcenter = a.times(e).times(-1),
+          delta     = new Decimal(2).times(Math.asin(Decimal.ONE.dividedBy(e))),
+          center    = { x: offcenter.plus(parent_coords.x), y: parent_coords.y },
+          b         = a.times(-1).dividedBy(Math.tan(delta) / 2)
+
       context.save()
-      context.moveTo(center.x.minus(w), center.y)
-      drawCurve()
-      context.restore(center.x.minus(w / 3), center.y.plus())
+      context.strokeStyle = style.stroke_style
+      context.lineWidth   = style.line_width
+      var start_y = new Decimal(context.canvas.height).minus(center.y)
+      var start_x = solveHyperbolaForX(start_y, a, b)
+      // if (start_x.lt(0) || start_x.gt(context.canvas.width)) {
+      //   start_x = center.x.times(-1)
+      //   start_y = solveHyperbolaForY(start_x, a, b)
+      // }
+      var start_point = rotate({ x: start_x.plus(center.x), y: start_y }, parent_coords, pe_arg)
+      var end_point
+      this.renderFilledCircle(start_point, 5, { fill_style: '#FF0' })
+      context.moveTo(start_point.x, start_point.y)
+      var end_y = context.canvas.height
+      for (var y = start_y; y.lt(end_y); y = y.plus(10)) {
+        var x       = solveHyperbolaForX(y, a, b)
+        var p       = { x: x.plus(center.x), y: y.plus(center.y) }
+        var prime   = rotate(p, parent_coords, pe_arg)
+        end_point = prime
+        context.lineTo(prime.x, prime.y)
+      }
+      context.stroke()
+      context.restore()
+
+      this.renderFilledCircle(end_point, 5, { fill_style: '#0F0' })
+      console.log({ x: '' + start_point.x, y: '' + start_point.y }, { x: '' + end_point.x, y: '' + end_point.y })
+      this.renderFilledCircle(rotate({ x: solveHyperbolaForX(new Decimal(0), a, b).plus(center.x), y: center.y }, parent_coords, pe_arg), 5, { fill_style: '#F00' })
+    }
+
+    function solveHyperbolaForX(y, a, b) {
+      return a.times(a).times(y.times(y).dividedBy(b.times(b)).plus(1)).sqrt().times(-1)
+    }
+
+    function solveHyperbolaForY(x, a, b) {
+      return b.times(b).times(Decimal.ONE.minus(x.times(x).dividedBy(a.times(a)))).sqrt().times(-1)
     }
 
     function splitCurve(curve) {
@@ -219,6 +211,10 @@
       var context = this.getContext()
       context.save()
       context.fillStyle = '#FFF'
+      context.shadowColor = '#000'
+      context.shadowOffsetX = 1
+      context.shadowOffsetY = 1
+      context.shadowBlur = 1
       context.fillText(text, x, y)
       context.restore()
     }
