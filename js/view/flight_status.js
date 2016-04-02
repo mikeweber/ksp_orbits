@@ -28,6 +28,8 @@
         .append(this.getPanelFor('vel'))
         .append(this.makeTitle('Throttle'))
         .append(this.getPanelFor('throttle'))
+        .append(this.makeTitle('Fuel Consumed'))
+        .append(this.getPanelFor('fuel'))
         .append(this.makeTitle('Altitude'))
         .append(this.getPanelFor('r'))
         .append(this.makeTitle('Phi'))
@@ -48,6 +50,8 @@
         .append(this.getPanelFor('prograde'))
         .append(this.makeTitle('Heading'))
         .append(this.getPanelFor('heading'))
+        .append(this.makeTitle('Phase Angle'))
+        .append(this.getPanelFor('phase'))
     }
 
     klass.prototype.updateStatus = function(t, ship) {
@@ -61,6 +65,7 @@
       this.updateStat('duna_distance', helpers.calcObjectDistance(ship, this.sim.getBody('Duna'), t).dividedBy(1000).round() + 'km')
       this.updateStat('vel', helpers.roundTo(ship.getVelocity(), 1) + 'm/s')
       this.updateStat('throttle', helpers.roundTo(new Decimal(ship.getThrottle()), 1))
+      this.updateStat('fuel', helpers.roundTo(new Decimal(ship.getConsumedFuel()), 1) + 'kg')
       this.updateStat('prograde', helpers.radianToDegrees(ship.getCartesianPrograde()).round())
       this.updateStat('r', ship.getDistanceFromParent(t).round().dividedBy(1000) + 'km')
       this.updateStat('phi', helpers.radianToDegrees(ship.getCartesianAngle()).round())
@@ -72,6 +77,9 @@
       this.updateStat('true_anom', helpers.radianToDegrees(ship.getTrueAnomaly(t)).round())
       this.updateStat('flight_path', helpers.radianToDegrees(ship.getFlightPathAngle(t)).round())
       this.updateStat('ecc', helpers.roundTo(ship.getEccentricity(), 4))
+      if (ship.getTarget()) {
+        this.updateStat('phase', helpers.roundTo(helpers.radianToDegrees(ship.getPhaseAngle(ship.getTarget(), t)), 2) + ' (' + ship.getTarget().name + ')')
+      }
 
       this.last_run = now
     }

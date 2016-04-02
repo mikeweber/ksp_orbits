@@ -3,7 +3,8 @@ var FlightPlanner = {
   Util: {},
   Model: {},
   Helper: {},
-  Controller: {}
+  Controller: {},
+  Sim: {}
 }
 Decimal.config({ errors: false })
 

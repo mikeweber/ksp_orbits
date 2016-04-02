@@ -12,6 +12,7 @@
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
       this.trail_length      = 200
+      this.fuel_consumed     = 0
     }
 
     klass.prototype = Object.create(namespace.CelestialBody.prototype)
@@ -52,6 +53,7 @@
           new_y       = old_coords.y.plus(vel_y.times(dt).plus(new_accel_y.times(dt).dividedBy(2))).plus(mid_y).dividedBy(2),
           new_coords  = { x: new_x, y: new_y }
 
+      this.consumeFuel(this.fuel_consumption, dt)
       this.alterVelocity(vel_x.plus(accel_x), vel_y.plus(accel_y))
       this.alterPrograde(vel_x.plus(accel_x), vel_y.plus(accel_y))
       this.setPosition(new_coords)
@@ -61,12 +63,30 @@
       this.detectCollision(t)
     }
 
+    klass.prototype.consumeFuel = function(fuel_consumption, time) {
+      if (!fuel_consumption) return
+
+      this.fuel_consumed += fuel_consumption * time * this.getThrottle()
+    }
+
     klass.prototype.getAcceleration = function() {
       return this.max_accel.times(this.getThrottle())
     }
 
     klass.prototype.setMaxAcceleration = function(accel) {
       this.max_accel = new Decimal(accel)
+    }
+
+    klass.prototype.getFuelConsumption = function() {
+      return this.fuel_consumption
+    }
+
+    klass.prototype.setFuelConsumption = function(rate) {
+      this.fuel_consumption = rate
+    }
+
+    klass.prototype.getConsumedFuel = function() {
+      return this.fuel_consumed
     }
 
     klass.prototype.setThrottle = function(throttle, t) {

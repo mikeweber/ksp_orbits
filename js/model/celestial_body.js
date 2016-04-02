@@ -1,5 +1,4 @@
 /* global Decimal FlightPlanner */
-var last = {};
 
 (function(namespace, helpers, makeObservable, calculators) {
   'use strict'
@@ -193,6 +192,11 @@ var last = {};
       if (this.trail_length >=0 && this.breadcrumbs.length >= this.trail_length) {
         this.breadcrumbs.shift()
       }
+    }
+
+    // assumes a common parent body
+    klass.prototype.getPhaseAngle = function(other_body, t) {
+      return helpers.clampRadians(other_body.getCartesianAngle(t).minus(this.getCartesianAngle(t)))
     }
 
     klass.prototype.getRadius = function() {
