@@ -1,0 +1,39 @@
+Requirements
+============
+Crew of 6
+Life support to maintain crew in space during transit
+Communications
+Power generation
+Radiators (move these apart so they don't interfere with each other)
+Ion engines
+Command module
+Remote Control module
+1.25m docking port
+
+Descent Module
+==============
+Capacity of 6
+Drogue chutes
+Parachutes
+Solar panels (retractable optional)
+1.25m docking port
+Engines
+Landing struts
+Ladder
+
+Presupply Mission
+=================
+Send supplies, habitat (Hab), Duna Ascent Vehicle (DAV), communications array and scanning equipment ahead of time
+Earliest hohmann transfer window is Year 1, day 236 @ 4:19 and will take 258 days
+Supplies will be in Duna orbit on Year 2, day 69
+* Deploy Communication satellites into constellation
+* Deploy scanner to find a suitable landing location
+* Once an ore rich landing spot has been selected, land the DAV so it can begin fueling
+
+Hermes Mission
+==============
+After the Hab and DAV have landed on Duna, the Hermes mission can commence
+Currently the best transfer window appears to be when the phase angle between Duna and Kerbin is 20.5º.
+The first time this occurs after the supplies have been launched is Year 3, Day 360 @ 1:20 (MET 2.595e7)
+The mission would arrive Year 3, Day 379 @ 3:36 (MET: 2.6585e7) (~4.75 real days)
+

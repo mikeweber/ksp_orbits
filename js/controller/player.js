@@ -24,6 +24,14 @@
       this.trackNext     = renderer.trackNext.bind(renderer)
       this.trackPrev     = renderer.trackPrev.bind(renderer)
       this.reset         = sim.reset.bind(sim)
+
+      this.getCurrentMission = function() {
+        return this.current_mission
+      }
+
+      this.setCurrentMission = function(mission) {
+        this.current_mission = mission
+      }
     }
 
     makeObservable(klass)

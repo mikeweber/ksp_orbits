@@ -20,14 +20,6 @@
 
     klass.prototype.hasShadow = function() { return false }
 
-    klass.prototype.setTarget = function(target) {
-      this.target = target
-    }
-
-    klass.prototype.getTarget = function() {
-      return this.target
-    }
-
     klass.prototype.renderName = function() {}
 
     klass.prototype.step = function(t, dt) {
@@ -41,16 +33,8 @@
           vel_x       = this.v.times(this.getCartesianProgradeX(t)),
           vel_y       = this.v.times(this.getCartesianProgradeY(t)),
           old_coords  = this.getLocalCoordinates(t),
-          mid_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
-          mid_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
-          mid_coords  = { x: mid_x, y: mid_y },
-          mid_phi     = new Decimal(Math.atan2(mid_coords.y, mid_coords.x)),
-          new_g_x     = gravity.times(Math.cos(mid_phi)),
-          new_g_y     = gravity.times(Math.sin(mid_phi)),
-          new_accel_x = a_x.plus(new_g_x).times(dt),
-          new_accel_y = a_y.plus(new_g_y).times(dt),
-          new_x       = old_coords.x.plus(vel_x.times(dt).plus(new_accel_x.times(dt).dividedBy(2))).plus(mid_x).dividedBy(2),
-          new_y       = old_coords.y.plus(vel_y.times(dt).plus(new_accel_y.times(dt).dividedBy(2))).plus(mid_y).dividedBy(2),
+          new_x       = old_coords.x.plus(vel_x.times(dt).plus(accel_x.times(dt).dividedBy(2))),
+          new_y       = old_coords.y.plus(vel_y.times(dt).plus(accel_y.times(dt).dividedBy(2))),
           new_coords  = { x: new_x, y: new_y }
 
       this.consumeFuel(this.fuel_consumption, dt)

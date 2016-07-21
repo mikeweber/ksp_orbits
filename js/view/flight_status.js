@@ -59,26 +59,30 @@
       if (now - this.last_run < this.refresh_interval) return
 
       this.updateStat('launch_date', helpers.convertTimeToDate(ship.getLaunchTime()), ship.getLaunchTime())
-      this.updateStat('mission_time', helpers.convertTimeToDate(ship.getMissionTime(t)), ship.getMissionTime(t))
+      if (ship.getMissionTime) {
+        this.updateStat('mission_time', helpers.convertTimeToMissionTime(ship.getMissionTime(t)), ship.getMissionTime(t))
+      }
       this.updateStat('soi', ship.getParent().name)
       this.updateStat('kerbin_distance', helpers.calcObjectDistance(ship, this.sim.getBody('Kerbin'), t).dividedBy(1000).round() + 'km')
       this.updateStat('duna_distance', helpers.calcObjectDistance(ship, this.sim.getBody('Duna'), t).dividedBy(1000).round() + 'km')
-      this.updateStat('vel', helpers.roundTo(ship.getVelocity(), 1) + 'm/s')
-      this.updateStat('throttle', helpers.roundTo(new Decimal(ship.getThrottle()), 1))
-      this.updateStat('fuel', helpers.roundTo(new Decimal(ship.getConsumedFuel()), 1) + 'kg')
-      this.updateStat('prograde', helpers.radianToDegrees(ship.getCartesianPrograde()).round())
+      this.updateStat('vel', helpers.roundTo(ship.getVelocity(t), 1) + 'm/s')
+      if (ship.getThrottle) {
+        this.updateStat('throttle', helpers.roundTo(new Decimal(ship.getThrottle() * 100), 1) + '%')
+        this.updateStat('fuel', helpers.roundTo(new Decimal(ship.getConsumedFuel()), 1) + 'kg')
+      }
+      this.updateStat('prograde', helpers.radianToDegrees(ship.getCartesianPrograde(t)).round() + 'º')
       this.updateStat('r', ship.getDistanceFromParent(t).round().dividedBy(1000) + 'km')
-      this.updateStat('phi', helpers.radianToDegrees(ship.getCartesianAngle()).round())
-      this.updateStat('heading', helpers.radianToDegrees(ship.getHeading(t)).round() + ' (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
+      this.updateStat('phi', helpers.radianToDegrees(ship.getCartesianAngle(t)).round() + 'º')
+      this.updateStat('heading', helpers.radianToDegrees(ship.getHeading(t)).round() + 'º (' + (ship.use_absolute_heading ? 'abs' : 'rel') + ')')
       this.updateStat('message', this.getMessage())
       this.updateStat('ap', ship.getApoapsis().round().dividedBy(1000) + 'km')
       this.updateStat('pe', ship.getPeriapsis().round().dividedBy(1000) + 'km')
-      this.updateStat('gamma', helpers.radianToDegrees(ship.getZenithAngle()).round())
-      this.updateStat('true_anom', helpers.radianToDegrees(ship.getTrueAnomaly(t)).round())
-      this.updateStat('flight_path', helpers.radianToDegrees(ship.getFlightPathAngle(t)).round())
+      this.updateStat('gamma', helpers.radianToDegrees(ship.getZenithAngle(t)).round() + 'º')
+      this.updateStat('true_anom', helpers.radianToDegrees(ship.getTrueAnomaly(t)).round() + 'º')
+      this.updateStat('flight_path', helpers.radianToDegrees(ship.getFlightPathAngle(t)).round() + 'º')
       this.updateStat('ecc', helpers.roundTo(ship.getEccentricity(), 4))
       if (ship.getTarget()) {
-        this.updateStat('phase', helpers.roundTo(helpers.radianToDegrees(ship.getPhaseAngle(ship.getTarget(), t)), 2) + ' (' + ship.getTarget().name + ')')
+        this.updateStat('phase', helpers.roundTo(helpers.radianToDegrees(ship.getPhaseAngle(ship.getTarget(), t)), 2) + 'º (' + ship.getTarget().name + ')')
       }
 
       this.last_run = now

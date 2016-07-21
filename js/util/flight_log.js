@@ -34,7 +34,7 @@
     }
 
     function timestamp(ship, t) {
-      return '' + t + ' (t+' + ship.getMissionTime(t) + '): ' + ship.name
+      return '[(MET: ' + t + ') (t+' + ship.getMissionTime(t) + '): ' + ship.name + ']'
     }
 
     function shipTelemetry(ship, t) {

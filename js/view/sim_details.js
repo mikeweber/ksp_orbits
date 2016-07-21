@@ -15,8 +15,16 @@
       this.print('Zoom: ' + this.parent_renderer.zoom.round(), 5, 10)
       this.print('Warp: ' + this.player.sim.tick_size, 5, 20)
       this.print(this.player.sim.getKerbalDate(), 5, 30)
-      this.print('T+' + this.player.sim.t, 5, 40)
-      this.print('Focused on ' + this.parent_renderer.getTrackingName(), 5, 50)
+      this.print('MET: ' + this.player.sim.t, 5, 40)
+      var current_mission = this.player.getCurrentMission()
+      if (current_mission) {
+        mission_time_msg = 'T+' + current_mission.getMissionTime(this.player.sim.t)
+        this.print(mission_time_msg, 5, 50)
+      }
+      var tracking = this.parent_renderer.getTrackingName()
+      if (tracking) {
+        this.print('Focused on ' + tracking, 5, 60)
+      }
     }
 
     return klass

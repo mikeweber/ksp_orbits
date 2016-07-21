@@ -28,6 +28,18 @@
       if (minute < 10) minute = '0' + minute
       return 'Year ' + year + ', Day ' + day + ' ' + hour + ':' + minute
     },
+    convertTimeToMissionTime: function(t) {
+      var year   = Math.floor(t / YEAR),
+          day    = Math.floor((t % YEAR) / DAY),
+          hour   = Math.floor(((t % YEAR) % DAY) / HOUR),
+          minute = Math.floor((((t % YEAR) % DAY) % HOUR) / MIN)
+      if (day < 100) {
+        if (day < 10) day = '0' + day
+        day = '0' + day
+      }
+      if (minute < 10) minute = '0' + minute
+      return 'Year ' + year + ', Day ' + day + ' ' + hour + ':' + minute
+    },
     radianToDegrees: function(rad) {
       return rad.times(180).dividedBy(Math.PI)
     },

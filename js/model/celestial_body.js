@@ -101,7 +101,7 @@
           e    = this.getEccentricity(),
           S    = new Decimal(Math.sin(-M)),
           C    = new Decimal(Math.cos(-M)),
-          phi  = new Decimal(Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
+          phi  = this.getArgumentOfPeriapsis().minus(Math.atan2(one.minus(e.toPower(2)).times(S), C.minus(e))),
           r    = a.times(one.minus(e.toPower(2)).dividedBy(one.plus(e.times(Math.cos(phi)))))
 
       return { r: r, phi: phi }
@@ -150,6 +150,14 @@
       return this.launch_time
     }
 
+    klass.prototype.setTarget = function(target) {
+      this.target = target
+    }
+
+    klass.prototype.getTarget = function() {
+      return this.target
+    }
+
     klass.prototype.getHeadingX = function(t) {
       return new Decimal(Math.cos(this.getHeading(t)))
     }
@@ -164,6 +172,13 @@
 
     klass.prototype.getCartesianProgradeY = function(t) {
       return new Decimal(Math.sin(this.getCartesianPrograde(t)))
+    }
+
+    klass.prototype.getCartesianAngleFromBody = function(t, parent) {
+      var body_pos   = this.getCoordinates(t),
+          parent_pos = parent.getCoordinates(t)
+
+      return helpers.clampRadians(new Decimal(Math.atan2(body_pos.y.minus(parent_pos.y), body_pos.x.minus(parent_pos.x))))
     }
 
     klass.prototype.getCoordinates = function(t) {
@@ -204,6 +219,8 @@
     }
 
     klass.prototype.getMissionTime = function(t) {
+      if (!this.launch_time) return
+
       return t.minus(this.launch_time)
     }
 
