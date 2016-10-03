@@ -1,7 +1,7 @@
 /* globals FlightPlanner Decimal jQuery */
 
 // for Duna Intercept
-var launch_time = 10 * DAY + 2 * HOUR
+var launch_time = 3 * DAY + 4 * HOUR
 var start_time = launch_time - 1
 
 var player = FlightPlanner.Sim.initUniverse(start_time)
@@ -13,6 +13,9 @@ var mun_mission = runMunIntercept(player, 'Mün Mission', launch_time, jQuery)
 function runMunIntercept(player, name, launch_time, $) {
   'use strict'
 
+  
+  var initial_angle = 31.15 // 32 hits mun dead on
+  var turn_around_time = 6260
   var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin'),
       mun = player.sim.getBody('Mün'),
       kerbin = player.sim.getBody('Kerbin')
@@ -27,9 +30,10 @@ function runMunIntercept(player, name, launch_time, $) {
     125,
     {
       throttle:         1,
-      max_accel:        0.25,
+      max_accel:        49420 / 134780,
       fuel_consumption: 0.000325,
-      initial_angle:    294 / 360 * Math.TAU,
+      // testing at point where phase angle is 74.79 degrees less than the initial angle
+      initial_angle:    initial_angle / 360 * Math.TAU,
       heading:          0,
       absolute_heading: false,
       target:           mun
@@ -50,8 +54,14 @@ function runMunIntercept(player, name, launch_time, $) {
     FlightPlanner.Sim.followShipAndTarget(ship, mun, player, t)
   })
 
-  var aim_for_mun = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(8350) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
-    var msg = 'Halfway point. Begin deceleration.'
+  var turn_around = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(turn_around_time) }, Math.PI, false, 0).done(function(status_tracker, ship, t) {
+    var msg = 'Halfway point. Turning ship around.'
+    logger.logShipTelemetry(ship, t, msg)
+    status_tracker.setMessage(msg)
+  })
+  
+  var aim_for_mun = plan.addManeuver(function(t, ship) { return ship.getMissionTime(t).gt(turn_around_time + 60) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
+    var msg = 'Decelerating.'
     logger.logShipTelemetry(ship, t, msg)
     status_tracker.setMessage(msg)
   })
@@ -61,7 +71,7 @@ function runMunIntercept(player, name, launch_time, $) {
     logger.logShipTelemetry(ship, t, msg)
     status_tracker.setMessage(msg)
 
-    var getCaptured = plan.addManeuver(function(t, ship) { return ship.getApoapsis().gt(0) && ship.getPeriapsis().lt(2.5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
+    var getCaptured = plan.addManeuver(function(t, ship) { return ship.getApoapsis().gt(0) && ship.getApoapsis().lt(2.0e6) && ship.getPeriapsis().lt(2.5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
       msg = 'captured'
       logger.logShipTelemetry(ship, t, msg)
       status_tracker.setMessage(msg)
