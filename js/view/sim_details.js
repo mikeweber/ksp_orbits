@@ -15,7 +15,7 @@
       this.print('Zoom: ' + this.parent_renderer.zoom.round(), 5, 10)
       this.print('Warp: ' + this.player.sim.tick_size, 5, 20)
       this.print(this.player.sim.getKerbalDate(), 5, 30)
-      this.print('T+' + this.player.sim.t, 5, 40)
+      this.print('T+' + Math.round(this.player.sim.t), 5, 40)
       this.print('Focused on ' + this.parent_renderer.getTrackingName(), 5, 50)
     }
 
