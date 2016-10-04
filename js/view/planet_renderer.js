@@ -22,7 +22,7 @@
           coords        = this.convertWorldToCanvas(world_coords, t),
           planet_radius = this.getRadiusForRendering(),
           soi_radius    = this.getSOIRadiusForRendering()
-      this.renderBreadcrumbs()
+      this.renderBreadcrumbs(t)
       this.renderFilledCircle(coords, planet_radius, { fill_style: this.color })
       if (soi_radius && soi_radius > planet_radius) {
         this.renderCircle(coords, soi_radius, { stroke_style: '#FFFFFF', line_width: 1 })
@@ -75,13 +75,13 @@
       return this.scaleWorldToCanvasX(this.body.soi)
     }
 
-    klass.prototype.renderBreadcrumbs = function() {
+    klass.prototype.renderBreadcrumbs = function(t) {
       var ctx = this.getContext()
       for (var i = this.body.breadcrumbs.length; i--; ) {
         var el     = this.body.breadcrumbs[i],
-            coords = this.convertLocalToCanvas(el.parent, el.pos),
+            coords = this.convertLocalToCanvas(el.parent, el.pos, t),
             color  = helpers.shadeRGBColor(this.color, -(this.body.breadcrumbs.length - i) * 0.005)
-        this.renderFilledCircle(coords, 1, { fill_style: color })
+        this.renderFilledCircle(coords, 1, { fill_style: this.color })
       }
     }
 

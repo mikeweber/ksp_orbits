@@ -13,9 +13,8 @@ var mun_mission = runMunIntercept(player, 'Mün Mission', launch_time, jQuery)
 function runMunIntercept(player, name, launch_time, $) {
   'use strict'
 
-  
-  var initial_angle = 31.15 // 32 hits mun dead on
-  var turn_around_time = 6260
+  var initial_angle = 61
+  var turn_around_time = 6275
   var stat = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin'),
       mun = player.sim.getBody('Mün'),
       kerbin = player.sim.getBody('Kerbin')
@@ -71,7 +70,7 @@ function runMunIntercept(player, name, launch_time, $) {
     logger.logShipTelemetry(ship, t, msg)
     status_tracker.setMessage(msg)
 
-    var getCaptured = plan.addManeuver(function(t, ship) { return ship.getApoapsis().gt(0) && ship.getApoapsis().lt(2.0e6) && ship.getPeriapsis().lt(2.5e5) }, 0, false, 0).done(function(status_tracker, ship, t) {
+    var getCaptured = plan.addManeuver(function(t, ship) { return ship.getApoapsis().gt(0) && ship.getApoapsis().lt(2.0e6) && ship.getPeriapsis().lt(2.5e5) }, Math.PI, false, 1).done(function(status_tracker, ship, t) {
       msg = 'captured'
       logger.logShipTelemetry(ship, t, msg)
       status_tracker.setMessage(msg)

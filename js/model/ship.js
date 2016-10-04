@@ -8,7 +8,7 @@
       this.setMotionCalculator(calculators.acceleration)
       this.initializeParameters(name, radius, 0, v, 0, pos, 0, 0, prograde)
       this.setHeading(heading, absolute_heading)
-      this.breadcrumb_delta  = DAY
+      this.breadcrumb_delta  = 5 * MIN
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
       this.trail_length      = 200
@@ -123,10 +123,7 @@
     }
 
     klass.prototype.setPosition = function(coords) {
-      var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
-          phi      = new Decimal(Math.atan2(coords.y, coords.x))
-
-      this.pos = { 'r': distance, phi: phi }
+      this.pos = this.convertCoordsToPosition(coords)
     }
 
     klass.prototype.setPositionUsingPosition = function(pos) {

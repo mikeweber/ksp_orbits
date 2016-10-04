@@ -187,11 +187,43 @@
     klass.prototype.dropBreadcrumb = function(t) {
       if (t - this.last_breadcrumb < this.breadcrumb_delta) return
 
-      this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
+      var parent = this.getKerbinOrParent()
+      var pos = this.pos
+      if (parent !== this.getParent()) {
+        pos = this.convertPositionToDifferentOrigin(parent, t)
+      }
+      this.breadcrumbs.push({ parent: parent, pos: Object.create(pos) })
       this.last_breadcrumb = t
       if (this.trail_length >=0 && this.breadcrumbs.length >= this.trail_length) {
         this.breadcrumbs.shift()
       }
+    }
+
+    klass.prototype.convertPositionToDifferentOrigin = function(origin, t) {
+      var origin_coords = origin.getCoordinates(t)
+      var my_coords = this.getCoordinates(t)
+      return this.convertCoordsToPosition({ x: my_coords.x - origin_coords.x, y: my_coords.y - origin_coords.y })
+    }
+
+    klass.prototype.getKerbinOrParent = function() {
+      return getKerbin(this.parent) || this.parent
+    }
+
+    function getKerbin(parent) {
+      if (!parent || parent.name === 'Kerbol') return null
+
+      if (parent.name === 'Kerbin') {
+        return parent
+      } else {
+        getKerbin(parent.getParent())
+      }
+    }
+
+    klass.prototype.convertCoordsToPosition = function(coords) {
+      var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
+          phi      = new Decimal(Math.atan2(coords.y, coords.x))
+
+      return { 'r': distance, phi: phi }
     }
 
     // assumes a common parent body
