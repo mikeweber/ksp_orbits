@@ -202,11 +202,11 @@
     klass.prototype.convertPositionToDifferentOrigin = function(origin, t) {
       var origin_coords = origin.getCoordinates(t)
       var my_coords = this.getCoordinates(t)
-      return this.convertCoordsToPosition({ x: my_coords.x - origin_coords.x, y: my_coords.y - origin_coords.y })
+      return this.convertCoordsToPosition({ x: new Decimal(my_coords.x - origin_coords.x), y: new Decimal(my_coords.y - origin_coords.y) })
     }
 
     klass.prototype.getKerbinOrParent = function() {
-      return getKerbin(this.parent) || this.parent
+      return getKerbin(this.getParent()) || this.parent
     }
 
     function getKerbin(parent) {
@@ -215,7 +215,7 @@
       if (parent.name === 'Kerbin') {
         return parent
       } else {
-        getKerbin(parent.getParent())
+        return getKerbin(parent.getParent())
       }
     }
 
