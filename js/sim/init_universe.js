@@ -27,7 +27,7 @@
         canvas_dimensions = { width: 700, height: 700 },
         bg        = $('#background')[0],
         renderer  = new FlightPlanner.View.Renderer(canvas, world, canvas_dimensions),
-        sim       = new FlightPlanner.Controller.Simulator(start_sim_at, system, 10),
+        sim       = new FlightPlanner.Controller.Simulator(start_sim_at, system, 0.1),
         player    = new FlightPlanner.Controller.Player(sim, renderer)
 
     renderer.registerRenderer(new FlightPlanner.View.BackgroundRenderer(bg))
