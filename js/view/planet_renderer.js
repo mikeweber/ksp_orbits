@@ -81,7 +81,7 @@
         var el     = this.body.breadcrumbs[i],
             coords = this.convertLocalToCanvas(el.parent, el.pos, t),
             color  = helpers.shadeRGBColor(this.color, -(this.body.breadcrumbs.length - i) * 0.005)
-        this.renderFilledCircle(coords, 1, { fill_style: color })
+        this.renderFilledCircle(coords, 1, { fill_style: this.color })
       }
     }
 

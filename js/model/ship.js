@@ -123,10 +123,7 @@
     }
 
     klass.prototype.setPosition = function(coords) {
-      var distance = coords.x.toPower(2).plus(coords.y.toPower(2)).sqrt(),
-          phi      = new Decimal(Math.atan2(coords.y, coords.x))
-
-      this.pos = { 'r': distance, phi: phi }
+      this.pos = this.convertCoordsToPosition(coords)
     }
 
     klass.prototype.setPositionUsingPosition = function(pos) {
