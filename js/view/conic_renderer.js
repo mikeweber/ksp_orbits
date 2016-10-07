@@ -19,7 +19,8 @@
       if (!this.body.parentIsSun() && this.getZoom().lt(200)) return
 
       if (e >= 0 && e < 1) {
-        this.renderVisibleEllipseSegments(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
+        // this.renderVisibleEllipseSegments(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
+        this.renderEllipseWithLineSegments(coords, a, e, this.body.getArgumentOfPeriapsis(t), style)
       } else if (e === 1) {
         var pe = this.scaleWorldToCanvasY(this.body.getPeriapsis())
         this.renderParabola(coords, pe, this.body.getArgumentOfPeriapsis(t), style)

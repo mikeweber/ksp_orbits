@@ -87,6 +87,36 @@
       context.restore()
     }
 
+    klass.prototype.renderEllipseWithLineSegments = function(parent_coords, a, e, pe_arg, style) {
+      var context   = this.getContext(),
+          offcenter = a.times(e),
+          b         = a.times(a).times(Decimal.ONE.minus(e.times(e))).sqrt(),
+          center    = { x: offcenter.times(-1).plus(parent_coords.x), y: parent_coords.y }
+
+      context.save()
+      context.strokeStyle = style.stroke_style
+      context.lineWidth   = style.line_width
+      var start_point = { x: center.x.plus(a), y: center.y }
+      context.moveTo(parent_coords.x, parent_coords.y)
+      start_point = rotate(start_point, parent_coords, pe_arg)
+      context.beginPath()
+      var end_point
+      context.moveTo(start_point.x, start_point.y)
+      var step = 5
+      var start_theta = step, end_theta = 360
+      for (var theta = start_theta; theta <= end_theta; theta += step) {
+        var rad   = theta / 360 * Math.TAU
+        var x     = center.x.plus(a.times(Math.cos(rad)))
+        var y     = center.y.plus(b.times(Math.sin(rad)))
+        var p     = { x: x, y: y }
+        var prime = rotate(p, parent_coords, pe_arg)
+        end_point = prime
+        context.lineTo(prime.x, prime.y)
+      }
+      context.stroke()
+      context.restore()
+    }
+
     klass.prototype.renderHyperbola = function(parent_coords, a, e, pe, pe_arg, style) {
       var context   = this.getContext(),
           offcenter = a.times(e).times(-1),
