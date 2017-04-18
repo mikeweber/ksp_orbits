@@ -8,7 +8,7 @@
       this.setMotionCalculator(calculators.acceleration)
       this.initializeParameters(name, radius, 0, v, 0, pos, 0, 0, prograde)
       this.setHeading(heading, absolute_heading)
-      this.breadcrumb_delta  = DAY
+      this.breadcrumb_delta  = 5 * 60
       this.nearest_approach  = null
       this.max_accel         = new Decimal(0)
       this.trail_length      = 200

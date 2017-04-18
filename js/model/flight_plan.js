@@ -137,7 +137,11 @@
 
     klass.prototype.initObservers = function() {
       for (var i = this.ship_observers.length; i--; ) {
-        this.ship.observe('after:step', this.ship_observers[i])
+        if (typeof this.ship_observers[i][0] === 'function') {
+          this.ship.observe('after:step', this.ship_observers[i][0])
+        } else {
+          this.ship.observe(this.ship_observers[i][0], this.ship_observers[i][1])
+        }
       }
     }
 
@@ -145,8 +149,8 @@
       this.renderer.track(this.ship)
     }
 
-    klass.prototype.addObserver = function(observer) {
-      this.ship_observers.push(observer)
+    klass.prototype.addObserver = function(observer, fn) {
+      this.ship_observers.push([observer, fn])
     }
 
     makeObservable.bind(this)(klass)

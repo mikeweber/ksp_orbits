@@ -15,6 +15,10 @@
       this.events.push(msg)
     }
 
+    klass.prototype.log_append = function(msg) {
+      this.events.push(msg)
+    }
+
     klass.prototype.dump = function() {
       var result = ''
       for (var i = this.events.length; i--; ) {
@@ -38,7 +42,7 @@
     }
 
     function shipTelemetry(ship, t) {
-      return '(' + ship.getParent().name + ', ' + ship.getRadius() + ', ' + ship.getVelocity() + ', { r: ' + ship.getDistanceFromParent(t) + ', phi: ' + ship.getArgumentOfPeriapsis(t).plus(ship.getTrueAnomaly(t)) + ' }, ' + ship.getCartesianAngle(t) + ', ' + ship.getHeading(t) + ', ' + ship.isHeadingAbsolute() + ')'
+      return '(' + ship.getParent().name + ', ' + ship.getRadius() + ', ' + ship.getVelocity() + ', { r: ' + ship.getDistanceFromParent(t) + ', phi: ' + ship.pos.phi + ' }, ' + ship.getCartesianAngle(t) + ', ' + ship.getHeading(t) + ', ' + ship.isHeadingAbsolute() + ')'
     }
 
     makeObservable.bind(this)(klass)

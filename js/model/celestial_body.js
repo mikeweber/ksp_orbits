@@ -17,7 +17,7 @@
       this.setArgumentOfPeriapsis(arg_of_pe)
       this.e                = new Decimal(e)
       this.setCartesianPrograde(prograde)
-      this.last_breadcrumb  = 0
+      this.last_breadcrumb  = new Decimal(-1000)
       this.breadcrumb_delta = WEEK
       this.trail_length     = 0
       this.breadcrumbs      = []
@@ -200,7 +200,7 @@
     }
 
     klass.prototype.dropBreadcrumb = function(t) {
-      if (t - this.last_breadcrumb < this.breadcrumb_delta) return
+      if (t.minus(this.last_breadcrumb).toNumber() < this.breadcrumb_delta) return
 
       this.breadcrumbs.push({ parent: this.parent, pos: Object.create(this.pos) })
       this.last_breadcrumb = t
