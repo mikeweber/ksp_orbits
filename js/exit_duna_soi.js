@@ -25,11 +25,12 @@ function ExitDunaSOI(player, launch_time) {
     plan.placeShip(
       duna,
       822.98,
-      { phi: 0, r: duna.radius.plus(125000) },
-      Math.PI / 2,
+      { phi: Math.PI / 2, r: duna.radius.plus(125000) },
+      Math.PI,
       {
         throttle:         1,
-        max_accel:        0.25,
+        max_thrust:       49420,
+        mass:             130000,
         fuel_consumption: 0.000325,
         heading:          0,
         absolute_heading: false

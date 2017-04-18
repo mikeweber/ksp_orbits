@@ -10,7 +10,8 @@
       this.setHeading(heading, absolute_heading)
       this.breadcrumb_delta  = 5 * 60
       this.nearest_approach  = null
-      this.max_accel         = new Decimal(0)
+      this.max_thrust        = 0
+      this.mass              = 1
       this.trail_length      = 200
       this.fuel_consumed     = 0
     }
@@ -50,15 +51,29 @@
     klass.prototype.consumeFuel = function(fuel_consumption, time) {
       if (!fuel_consumption) return
 
-      this.fuel_consumed += fuel_consumption * time * this.getThrottle()
+      var consumed = fuel_consumption * time * this.getThrottle()
+      this.fuel_consumed += consumed
+      this.mass -= consumed * 0.1 // 0.1kg/unit is the density of xenon
     }
 
     klass.prototype.getAcceleration = function() {
-      return this.max_accel.times(this.getThrottle())
+      return new Decimal(this.getCurrentThrust() / this.getMass())
     }
 
-    klass.prototype.setMaxAcceleration = function(accel) {
-      this.max_accel = new Decimal(accel)
+    klass.prototype.getCurrentThrust = function() {
+      return this.max_thrust * this.getThrottle()
+    }
+
+    klass.prototype.setMaxThrust = function(thrust) {
+      this.max_thrust = thrust
+    }
+
+    klass.prototype.setMass = function(mass) {
+      this.mass = mass
+    }
+
+    klass.prototype.getMass = function() {
+      return this.mass
     }
 
     klass.prototype.getFuelConsumption = function() {

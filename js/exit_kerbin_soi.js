@@ -6,14 +6,14 @@
  * Exit velocity: 6440.643
  * Time: 27772.64
  */
-function ExitDunaSOI(player, launch_time) {
+function ExitKerbinSOI(player, launch_time) {
   'use strict'
 
   leaveSOI(player, 'Kermes', launch_time, jQuery)
 
   function leaveSOI(player, name, launch_time, $) {
     var stat        = new FlightPlanner.View.FlightStatus(player.sim, 1, 'Launching from Kerbin'),
-        duna        = player.sim.getBody('Duna'),
+        kerbin      = player.sim.getBody('Kerbin'),
         logger      = new FlightPlanner.Util.FlightLog(),
         telem       = new FlightPlanner.Util.FlightLog(),
         log_panel   = new FlightPlanner.View.LogPanel(logger),
@@ -25,13 +25,14 @@ function ExitDunaSOI(player, launch_time) {
     $('#control-container').after(telem_panel.getPanel())
 
     plan.placeShip(
-      duna,
-      822.98,
-      { phi: 0, r: duna.radius.plus(125000) },
+      kerbin,
+      2207.198255239215,
+      { phi: 0, r: kerbin.radius.plus(125000) },
       Math.PI / 2,
       {
         throttle:         1,
-        max_accel:        0.25,
+        max_thrust:       49420,
+        mass:             130000,
         fuel_consumption: 0.000325,
         heading:          0,
         absolute_heading: false
@@ -58,7 +59,7 @@ function ExitDunaSOI(player, launch_time) {
       plan.addObserver(function(current) {
         if (current.lt(lastTelem.plus(5))) return
         lastTelem = current
-        telem.execute('log_append', 'exit, ' + current.round() + ', ' + ship.getPeriapsis(current).round() + ', ' + ship.getApoapsis(current).round() + ', ' + ship.getVelocity().times(10).round().times(0.1) + ', ' + ship.getCartesianPrograde().times(100).round().times(0.01) + ', ' + ship.pos.r.times(100).round().times(0.01))
+        telem.execute('log_append', 'exit, ' + current.round() + ', ' + ship.getPeriapsis(current) + ', ' + ship.getApoapsis(current) + ', ' + ship.getVelocity() + ', ' + ship.getCartesianPrograde() + ', ' + ship.pos.r)
       })
 
       plan.addObserver('before:soiChange', function(ship, new_body, t) {

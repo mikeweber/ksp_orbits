@@ -19,6 +19,6 @@ var player;
   // })
   // new MunMission(player, mun_start_time)
   //new DunaMission(player, duna_start_time)
-  // new LeaveSOIMission(player, 0)
-  new ExitDunaSOI(player, 0)
+  new ExitKerbinSOI(player, 0)
+  // new ExitDunaSOI(player, 0)
 })()
