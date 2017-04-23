@@ -89,8 +89,8 @@
     }
 
     klass.prototype.setTickSize = function(tick) {
-      if (tick < 1) tick = 1
-      if (tick > 10000) tick = 10000
+      if (tick < 0.25) tick = 0.25
+      if (tick > 16384) tick = 16384
       this.tick_size = tick
     }
 

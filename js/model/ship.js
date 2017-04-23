@@ -8,7 +8,7 @@
       this.setMotionCalculator(calculators.acceleration)
       this.initializeParameters(name, radius, 0, v, 0, pos, 0, 0, prograde)
       this.setHeading(heading, absolute_heading)
-      this.breadcrumb_delta  = 5 * 60
+      this.breadcrumb_delta  = 5 * MIN
       this.nearest_approach  = null
       this.max_thrust        = 0
       this.mass              = 1
