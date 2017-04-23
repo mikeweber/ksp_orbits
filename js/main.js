@@ -19,6 +19,16 @@ var player;
   // })
   // new MunMission(player, mun_start_time)
   //new DunaMission(player, duna_start_time)
-  new ExitKerbinSOI(player, 0)
-  // new ExitDunaSOI(player, 0)
+  console.log(window.location.search)
+  switch (window.location.search) {
+    case '?kerbin_soi':
+      new ExitKerbinSOI(player, 0)
+      break
+    case '?kerbin_duna_transit':
+      new KerbinDunaTransit(player, 0, 0)
+      break
+    case '?duna_soi':
+      new ExitDunaSOI(player, 0)
+      break
+  }
 })()

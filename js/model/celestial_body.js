@@ -214,6 +214,16 @@
       return helpers.clampRadians(other_body.getCartesianAngle(t).minus(this.getCartesianAngle(t)))
     }
 
+    // Return the sun to parent to ship angle
+    klass.prototype.getAngle = function(other_body, t) {
+      var other_position  = other_body.getCoordinates(t)
+      var body_position   = this.getCoordinates(t)
+      var kerbol_angle    = Math.atan2(other_position.y.times(-1).toNumber(), other_position.x.times(-1).toNumber())
+      var body_angle      = Math.atan2(body_position.y.minus(other_position.y).toNumber(), body_position.x.minus(other_position.x).toNumber())
+
+      return helpers.clampRadians(body_angle - kerbol_angle)
+    }
+
     klass.prototype.getRadius = function() {
       return this.radius
     }

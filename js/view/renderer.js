@@ -147,7 +147,7 @@
     klass.prototype.convertWorldToCanvas = function(coords, t) {
       return {
         x: this.scaleWorldToCanvasX(coords.x.minus(this.getOffset(t).x)).plus(this.origin.x),
-        y: this.scaleWorldToCanvasY(this.getOffset(t).y.minus(coords.y)).plus(this.origin.y)
+        y: new Decimal(this.getCanvasHeight()).minus(this.scaleWorldToCanvasY(this.getOffset(t).y.minus(coords.y)).plus(this.origin.y))
       }
     }
 

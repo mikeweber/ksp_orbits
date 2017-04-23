@@ -1,8 +1,10 @@
 /* globals FlightPlanner jQuery */
 
 /*
- * Angle change from 125k orbit to leaving Duna SOI:
- * Exit velocity: 
+ * Phase angle change from 125k orbit to leaving Duna SOI: 1.58427663414979
+ * Heading: 1.60048989311702
+ * Exit velocity: 6029.8377
+ * Time: 15271.88
  */
 function ExitDunaSOI(player, launch_time) {
   'use strict'
@@ -30,7 +32,7 @@ function ExitDunaSOI(player, launch_time) {
       {
         throttle:         1,
         max_thrust:       49420,
-        mass:             130000,
+        mass:             110000,
         fuel_consumption: 0.000325,
         heading:          0,
         absolute_heading: false
@@ -53,11 +55,11 @@ function ExitDunaSOI(player, launch_time) {
 
     plan.observe('before:blastOff', function(ship, t) {
       var lastTelem = new Decimal(-5)
-      telem.execute('log_append', 'mode, t+, pe, ap, velocity, prograde, altitude')
+      telem.execute('log_append', 'mode, t+, pe, ap, velocity, prograde, angle, altitude')
       plan.addObserver(function(current) {
         if (current.lt(lastTelem.plus(5))) return
         lastTelem = current
-        telem.execute('log_append', 'exit, ' + current.round() + ', ' + ship.getPeriapsis(current).round() + ', ' + ship.getApoapsis(current).round() + ', ' + ship.getVelocity().times(10).round().times(0.1) + ', ' + ship.getCartesianPrograde().times(100).round().times(0.01) + ', ' + ship.pos.r.times(100).round().times(0.01))
+        telem.execute('log_append', 'exit, ' + current.round() + ', ' + ship.getPeriapsis(current) + ', ' + ship.getApoapsis(current) + ', ' + ship.getVelocity() + ', ' + ship.getCartesianPrograde() + ', ' + ship.getAngle(duna, t).times(180).dividedBy(Math.PI) + ', ' + ship.pos.r)
       })
 
       plan.addObserver('before:soiChange', function(ship, new_body, t) {
