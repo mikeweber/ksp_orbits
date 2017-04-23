@@ -2,6 +2,14 @@
 
 function MunMission(player, launch_time) {
   var mun_mission = runMunIntercept(player, 'Mün Mission', launch_time, jQuery)
+  var haltAndCatchFire = 0
+
+  var pmodeFunctions = {
+    1: firePrograde,
+    2: fireRetrograde,
+    3: 0
+  }
+
 
   function runMunIntercept(player, name, launch_time, $) {
     'use strict'
@@ -43,6 +51,24 @@ function MunMission(player, launch_time) {
     }
 
     plan.observe('after:blastOff', addShipRenderer)
+    var pmode = 1, fn
+
+    while (pmode !== haltAndCatchFire) {
+      fn = getPmodeFunction(pmode)
+      pmode = fn(ship, t)
+      runSystemLoops(ship, t)
+    }
+  }
+
+  function getPmodeFunction(pmode) {
+    var fn = pmodeFunctions[pmode]
+    if (typeof(fn) !== 'function') {
+      return function() { return haltAndCatchFire }
+    }
+    return fn
+  }
+
+  function runSystemLoops(ship, t) {
     plan.observe('after:blastOff', function(ship, t) {
       var init_angle = ship.getCartesianAngleFromBody(t, kerbin)
       var before_soi_fn = function(ship, new_body, t) {
