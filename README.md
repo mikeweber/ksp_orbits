@@ -12,8 +12,8 @@ A 2D [Kerbal Space Program](http://kerbalspaceprogram.com) simulator that is use
 ## TODO
 * [x] Track fuel consumption
 * [ ] Fix issue with rendering conic sections when zoomed too far into a large ellipse
-** [ ] Most likely caused by a floating point issue
-** [ ] Possible fix: break ellipse into more segments when zoomed in by splitting the bezier curve http://pomax.github.io/bezierinfo/#splitting
+  * [ ] Most likely caused by a floating point issue
+  * [ ] Possible fix: break ellipse into more segments when zoomed in by splitting the bezier curve http://pomax.github.io/bezierinfo/#splitting
 * [ ] Add parabolic and hyperbolic orbits to conic renderer
 * [ ] Add rest of planets and moons
 * [ ] Add panning and zooming directly with mouse
